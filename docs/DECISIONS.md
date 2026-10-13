@@ -32,3 +32,19 @@ This document records technical and design decisions made during the implementat
   2. Applied scoped repository patterns (`scopedRepo(userId)`) on all Pet and Vaccination routes to ensure cross-user lookups return `404 Not Found` rather than `403 Forbidden`, preventing resource enumeration attacks.
   3. Enforced business rule in `DELETE /pets/:id`: if any non-cancelled bookings with `startsAt >= now` exist for the pet, the request is rejected with `409 Conflict` (`ACTIVE_BOOKINGS_EXIST`).
 - **Reason:** Guarantees S3-equivalent security guarantees in local development, prevents cross-user information leakage, and enforces booking integrity.
+
+---
+
+### [2026-10-14] Decision 005: Availability Model, Advisory Lock Concurrency & Idempotency
+- **Context:** Section 14.4 and Phase 4 require slot-based grooming bookings with:
+  1. Dynamic availability generation without stored slot records, taking provider business hours, service duration, buffer time, station capacity, and minimum 120-minute lead time into account.
+  2. Protection against double-booking under concurrent requests (at least 50 simultaneous parallel requests for the same slot).
+  3. Replay protection using the `Idempotency-Key` header with cached response retrieval.
+- **Decision:**
+  1. **Dynamic Slot Generator:** `AvailabilityService` computes slots on-the-fly in the provider's local timezone (`America/New_York`), splitting the business hours into candidate windows matching `service.durationMinutes + service.bufferMinutes`. For each window, existing overlapping bookings with status not in `['CANCELLED']` are counted against `provider.stations`. Only candidate slots with count < `provider.stations` and `startsAt >= now + 120m` are marked available.
+  2. **Advisory Lock Serialization:** During booking creation in `POST /bookings`, inside a Prisma interactive transaction (`SERIALIZABLE` or `READ COMMITTED`), we acquire a transactional advisory lock:
+     `SELECT pg_advisory_xact_lock(hashtext(concat($providerId, ':', $startsAtIso)))`
+     This strictly serializes concurrent booking attempts for that specific slot and provider. If another transaction commits a booking that fills the remaining station capacity, the subsequent transaction detects capacity exceeded and aborts with `409 Conflict` (`SLOT_TAKEN`). The advisory lock automatically releases when the transaction commits or aborts.
+  3. **Idempotency Strategy:** The `IdempotencyRecord` table records incoming idempotency keys scoped by `userId`. Within the same transaction, if an existing record exists with the same payload hash, the previous response body and status code are returned. If an in-progress or identical request occurs, replay is safe and consistent.
+- **Reason:** Guarantees absolute consistency without race conditions or overbooking under heavy concurrent load, while keeping the database schema lean without storing millions of empty future time slots.
+

@@ -19,6 +19,8 @@ import { authRoutes } from './modules/auth/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { petRoutes } from './modules/pets/routes.js';
 import { uploadRoutes } from './modules/uploads/routes.js';
+import { providerRoutes } from './modules/providers/routes.js';
+import { bookingRoutes } from './modules/bookings/routes.js';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -107,6 +109,29 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
         });
     }
 
+    // Zod validation errors
+    if (error.name === 'ZodError' || error.issues) {
+      return reply
+        .status(422)
+        .type('application/problem+json')
+        .send({
+          type: 'https://pawnest.example/errors/validation_failed',
+          title: 'Validation Error',
+          status: 422,
+          code: ErrorCode.VALIDATION_FAILED,
+          detail: 'Request payload validation failed',
+          errors: error.issues?.map((i: any) => ({
+            field: i.path?.join('.') || 'body',
+            message: i.message,
+          })),
+          requestId: request.id,
+        });
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('UNCAUGHT API ERROR:', error);
+    }
+
     const statusCode = error.statusCode && error.statusCode >= 400 && error.statusCode < 600 ? error.statusCode : 500;
     return reply
       .status(statusCode)
@@ -161,11 +186,13 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
         };
       });
 
-      // Register auth, user, pet, and upload route modules
+      // Register auth, user, pet, upload, provider, and booking route modules
       v1.register(authRoutes, { prefix: '/auth' });
       v1.register(userRoutes);
       v1.register(petRoutes);
       v1.register(uploadRoutes);
+      v1.register(providerRoutes);
+      v1.register(bookingRoutes);
     },
     { prefix: '/api/v1' }
   );

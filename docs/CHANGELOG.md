@@ -3,6 +3,37 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 4: Providers, Search & Grooming Booking] - 2026-10-14
+### Added
+- **Provider & Service Discovery (`apps/api/src/modules/providers`):**
+  - Search & filter endpoints: `GET /providers` (supporting `type`, query `q`, `species`, `minPrice`, `maxPrice`, `minRating`, `city`, `neighborhood`, and cursor pagination) and `GET /providers/:slug` (full profile, hours, services, size-tier pricing, sample reviews, amenities).
+  - Seed database populated per Appendix B with 8 distinctive grooming ateliers across NYC, realistic service menus (Full Groom, Bath & Deshed, Puppy Intro, Sanitary Trim), size-tiered pricing (XS to XL), operational hours (2 stations each), and sample reviews tagged `isSample=true`.
+  - Transparent demo data tagging (`isSample: true`) on all seeded providers, services, and reviews.
+- **Dynamic Slot Availability Engine (`apps/api/src/modules/availability`):**
+  - Section 14.4 compliant slot generation without stored slot records: operates on-the-fly using provider operating hours, duration + buffer, station capacity, and minimum 120-minute lead time.
+  - Strict timezone normalization using provider timezone (`America/New_York`).
+- **Transactional Booking Pipeline (`apps/api/src/modules/bookings`):**
+  - `POST /bookings/quote`: Authoritative server-side price calculation accounting for base service, species, size tier, and selected add-ons (client price never trusted).
+  - `POST /bookings`: Atomic booking creation with mandatory `Idempotency-Key` header, transactional advisory locking (`pg_advisory_xact_lock`), station capacity bounds checking, pet ownership validation, and dynamic confirmation generation.
+  - Double-booking prevention: Concurrency tested with 50 simultaneous parallel requests for a single slot, guaranteeing exactly 1 success (201) and 49 conflict rejections (409 `SLOT_TAKEN`).
+  - Booking Management: `GET /bookings` (filtered by status), `GET /bookings/:id` (own bookings only, 404 for other users), `POST /bookings/:id/cancel` (policy-aware: free cancellation >= 24h before start), and `POST /bookings/:id/reschedule` (atomic slot reassignment).
+- **Frontend Discovery, Wizard & Dashboard (`apps/web`):**
+  - Grooming Marketplace Page (`/grooming`): Service hero, full filter sidebar (species, price range, rating, neighbourhood), search input, sorting, and responsive provider card grid with badges, price tags, and ratings.
+  - Provider Detail Page (`/grooming/[slug]`): Gallery, atelier overview, operational hours, verified badge, service menu accordion with size pricing, customer reviews with sample badges, and direct booking CTA.
+  - Multi-Step Booking Wizard (`/book/grooming/[providerSlug]`): 4-step streamlined checkout (Service selection, Pet selection with size calculation, Dynamic date & slot picker with timezone indicator, and Server-calculated Price Summary with cancellation policy terms).
+  - Dashboard Bookings (`/dashboard/bookings` & `/dashboard/bookings/[id]`): Filterable booking tabs (Upcoming, Completed, Cancelled), booking timeline/status, pet badge, service breakdown, cancellation modal with refund preview, and direct reschedule modal.
+
+### Verified
+- **Concurrency Test:** 50 simultaneous parallel requests competing for 1 station slot — exactly 1 booking succeeded (201), 49 requests received 409 `SLOT_TAKEN`, and PostgreSQL verified with exactly 1 booking record.
+- **Idempotency Verification:** Replaying requests with the same `Idempotency-Key` returns cached identical responses without re-executing booking creation.
+- **Authorization Isolation:** Verified User B receives 404 Not Found when attempting to access or modify User A's booking.
+- **Availability Engine Unit Tests:** 5/5 tests passed in `availability.test.ts` (timezone alignment, lead time filtering, station capacity saturation, invalid dates).
+- **Comprehensive API Tests:** 41/41 tests passing in `apps/api`.
+- **Full Monorepo Tests:** 57/57 tests passing across `apps/api` and `apps/web`.
+- **Typecheck & Production Build:** Monorepo typecheck clean with 0 errors (`pnpm -r typecheck`); Next.js production build cleanly compiled 21 static and dynamic pages.
+
+---
+
 ## [Phase 3: Pet Profiles & Vaccinations] - 2026-10-13
 ### Added
 - **Pet Management Backend (`apps/api/src/modules/pets`):**

@@ -267,6 +267,18 @@ export interface AvailabilitySlot {
 // BOOKING SCHEMAS
 // ==========================================
 
+export const QuoteBookingSchema = z.object({
+  petId: z.string().min(1),
+  providerId: z.string().min(1),
+  kind: z.nativeEnum(BookingKind),
+  serviceId: z.string().optional().nullable(),
+  boardingUnitId: z.string().optional().nullable(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  addOnIds: z.array(z.string()).default([]),
+});
+export type QuoteBookingInput = z.infer<typeof QuoteBookingSchema>;
+
 export const CreateBookingSchema = z.object({
   petId: z.string().min(1),
   providerId: z.string().min(1),
@@ -291,6 +303,25 @@ export const CreateBookingSchema = z.object({
     .nullable(),
 });
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
+
+export const RescheduleBookingSchema = z.object({
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+});
+export type RescheduleBookingInput = z.infer<typeof RescheduleBookingSchema>;
+
+export const CancelBookingSchema = z.object({
+  reason: z.string().optional().nullable(),
+});
+export type CancelBookingInput = z.infer<typeof CancelBookingSchema>;
+
+export const CreateReviewSchema = z.object({
+  bookingId: z.string().min(1),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().optional().nullable(),
+  body: z.string().optional().nullable(),
+});
+export type CreateReviewInput = z.infer<typeof CreateReviewSchema>;
 
 // ==========================================
 // CART & CHECKOUT SCHEMAS
@@ -427,4 +458,71 @@ export interface PetSummary {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ServiceSummary {
+  id: string;
+  providerId: string;
+  kind: BookingKind;
+  name: string;
+  description: string | null;
+  durationMin: number;
+  bufferMin: number;
+  basePriceCents: number;
+  currency: string;
+  sizePricing: Record<string, number> | null;
+  species: Species[];
+  isAddOn: boolean;
+  isActive: boolean;
+}
+
+export interface ReviewSummary {
+  id: string;
+  providerId: string;
+  userName: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  isSample: boolean;
+  createdAt: string;
+}
+
+export interface BookingPriceBreakdown {
+  baseCents: number;
+  sizeAdjustmentCents: number;
+  addOnsCents: number;
+  totalCents: number;
+  addOns?: Array<{ id: string; name: string; priceCents: number }>;
+}
+
+export interface BookingSummary {
+  id: string;
+  reference: string;
+  userId: string;
+  petId: string;
+  petName: string;
+  petSpecies: Species;
+  petSizeTier?: SizeTier | null;
+  providerId: string;
+  providerName: string;
+  providerSlug: string;
+  providerAddress: string;
+  providerPhone?: string | null;
+  serviceId?: string | null;
+  serviceName?: string | null;
+  kind: BookingKind;
+  status: BookingStatus;
+  startsAt: string;
+  endsAt: string;
+  priceCents: number;
+  currency: string;
+  priceBreakdown: BookingPriceBreakdown;
+  addOnIds: string[];
+  notes?: string | null;
+  isDemo: boolean;
+  cancellationHours: number;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  createdAt: string;
+}
+
 
