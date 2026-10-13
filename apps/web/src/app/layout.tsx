@@ -28,6 +28,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'PawNest',
+              url: 'https://pawnest.example',
+              logo: 'https://pawnest.example/images/logo.png',
+              description:
+                'Premium integrated pet-care marketplace offering grooming, boarding, veterinary visits, and considered supplies.',
+            }),
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen bg-[var(--color-ivory-100)] text-[var(--color-charcoal-700)] selection:bg-[var(--color-sage-100)]">
         {children}
       </body>

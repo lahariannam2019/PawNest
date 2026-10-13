@@ -1,0 +1,142 @@
+[
+  {
+    "id": "hero-01",
+    "file": "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=85",
+    "source": "Unsplash",
+    "photographer": "Chewy",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "A calm golden retriever seated by a sunlit window in soft morning light",
+    "focalPoint": "center"
+  },
+  {
+    "id": "hero-02",
+    "file": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=85",
+    "source": "Unsplash",
+    "photographer": "Charles Deluvio",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "A cute pug looking attentively into the camera with warm natural tones",
+    "focalPoint": "center"
+  },
+  {
+    "id": "svc-groom-01",
+    "file": "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=900&q=80",
+    "source": "Unsplash",
+    "photographer": "Autri Taheri",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Gentle hands grooming a fluffy white dog on a neutral salon table",
+    "focalPoint": "center"
+  },
+  {
+    "id": "svc-board-01",
+    "file": "https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?auto=format&fit=crop&w=900&q=80",
+    "source": "Unsplash",
+    "photographer": "Erda Estremera",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "A relaxed dog resting peacefully on a linen cushion in a bright room",
+    "focalPoint": "center"
+  },
+  {
+    "id": "svc-vet-01",
+    "file": "https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=900&q=80",
+    "source": "Unsplash",
+    "photographer": "Karsten Winegeart",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Veterinarian performing a gentle wellness check on a relaxed dog",
+    "focalPoint": "center"
+  },
+  {
+    "id": "svc-shop-01",
+    "file": "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=900&q=80",
+    "source": "Unsplash",
+    "photographer": "Alvan Nee",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Curated pet lifestyle accessories and ceramic bowl arranged on an ivory surface",
+    "focalPoint": "center"
+  },
+  {
+    "id": "how-01",
+    "file": "https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&w=800&q=80",
+    "source": "Unsplash",
+    "photographer": "Jamie Street",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Person relaxing on a sofa with their dog using a digital pet profile",
+    "focalPoint": "center"
+  },
+  {
+    "id": "how-02",
+    "file": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&q=80",
+    "source": "Unsplash",
+    "photographer": "Karsten Winegeart",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Dog receiving calm grooming care",
+    "focalPoint": "center"
+  },
+  {
+    "id": "how-03",
+    "file": "https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=800&q=80",
+    "source": "Unsplash",
+    "photographer": "Flouffy",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Happy dog returning home safely after boarding stay",
+    "focalPoint": "center"
+  },
+  {
+    "id": "pet-01",
+    "file": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=800&q=80",
+    "source": "Unsplash",
+    "photographer": "Karsten Winegeart",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Portrait of a dog with soft, warm background",
+    "focalPoint": "center"
+  },
+  {
+    "id": "story-01",
+    "file": "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=600&q=80",
+    "source": "Unsplash",
+    "photographer": "Berkay Gumustekin",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Smiling dog resting in sunlight",
+    "focalPoint": "center"
+  },
+  {
+    "id": "story-02",
+    "file": "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=600&q=80",
+    "source": "Unsplash",
+    "photographer": "Tran Mau Tri Tam",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Golden puppy sitting calmly",
+    "focalPoint": "center"
+  },
+  {
+    "id": "story-03",
+    "file": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80",
+    "source": "Unsplash",
+    "photographer": "Victor Grabarczyk",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Beagle looking up thoughtfully",
+    "focalPoint": "center"
+  },
+  {
+    "id": "cta-01",
+    "file": "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?auto=format&fit=crop&w=1600&q=85",
+    "source": "Unsplash",
+    "photographer": "Chewy",
+    "licenseUrl": "https://unsplash.com/license",
+    "attributionRequired": false,
+    "altText": "Dog and owner walking together at calm sunset",
+    "focalPoint": "center"
+  }
+]
