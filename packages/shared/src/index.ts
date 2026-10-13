@@ -156,12 +156,45 @@ export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 // PET SCHEMAS
 // ==========================================
 
+export const VaccinationStatus = {
+  UP_TO_DATE: 'UP_TO_DATE',
+  DUE_SOON: 'DUE_SOON',
+  EXPIRED: 'EXPIRED',
+} as const;
+export type VaccinationStatus = (typeof VaccinationStatus)[keyof typeof VaccinationStatus];
+
+export function deriveSizeTier(weightKg: number | null | undefined): SizeTier | null {
+  if (weightKg == null) return null;
+  if (weightKg < 5) return SizeTier.XS;
+  if (weightKg < 10) return SizeTier.S;
+  if (weightKg < 25) return SizeTier.M;
+  if (weightKg < 40) return SizeTier.L;
+  return SizeTier.XL;
+}
+
+export function getVaccineStatus(
+  expiresOn: Date | string | null | undefined,
+  referenceDate?: Date | number
+): VaccinationStatus {
+  if (!expiresOn) return VaccinationStatus.UP_TO_DATE;
+  const exp = new Date(expiresOn).getTime();
+  const now = referenceDate ? new Date(referenceDate).getTime() : Date.now();
+  if (exp < now) return VaccinationStatus.EXPIRED;
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  if (exp - now <= thirtyDaysMs) return VaccinationStatus.DUE_SOON;
+  return VaccinationStatus.UP_TO_DATE;
+}
+
+const DateInputSchema = z
+  .string()
+  .refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date format' });
+
 export const CreatePetSchema = z.object({
   name: z.string().min(1, 'Pet name is required'),
   species: z.nativeEnum(Species),
   breed: z.string().optional().nullable(),
   sex: z.nativeEnum(PetSex).default(PetSex.UNKNOWN),
-  birthDate: z.string().datetime().optional().nullable(),
+  birthDate: DateInputSchema.optional().nullable(),
   approxAgeMonths: z.number().int().min(0).max(360).optional().nullable(),
   weightKg: z.number().min(0.1).max(150).optional().nullable(),
   sizeTier: z.nativeEnum(SizeTier).optional().nullable(),
@@ -183,12 +216,15 @@ export type UpdatePetInput = z.infer<typeof UpdatePetSchema>;
 
 export const CreateVaccinationSchema = z.object({
   name: z.string().min(1, 'Vaccine name is required'),
-  administeredOn: z.string().datetime(),
-  expiresOn: z.string().datetime().optional().nullable(),
+  administeredOn: DateInputSchema,
+  expiresOn: DateInputSchema.optional().nullable(),
   vetName: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 export type CreateVaccinationInput = z.infer<typeof CreateVaccinationSchema>;
+
+export const UpdateVaccinationSchema = CreateVaccinationSchema.partial();
+export type UpdateVaccinationInput = z.infer<typeof UpdateVaccinationSchema>;
 
 // ==========================================
 // PROVIDER & AVAILABILITY
@@ -352,3 +388,43 @@ export interface ProductSummary {
   inStock: boolean;
   isDemo: boolean;
 }
+
+export interface VaccinationSummary {
+  id: string;
+  petId: string;
+  name: string;
+  administeredOn: string;
+  expiresOn: string | null;
+  vetName: string | null;
+  notes: string | null;
+  status: VaccinationStatus;
+}
+
+export interface PetSummary {
+  id: string;
+  userId: string;
+  name: string;
+  species: Species;
+  breed: string | null;
+  sex: PetSex;
+  birthDate: string | null;
+  approxAgeMonths: number | null;
+  weightKg: number | null;
+  sizeTier: SizeTier | null;
+  neutered: boolean | null;
+  microchipId: string | null;
+  allergies: string[];
+  conditions: string[];
+  medications: string[];
+  temperament: string[];
+  fears: string[];
+  notes: string | null;
+  vetClinicName: string | null;
+  avatarKey: string | null;
+  avatarUrl: string | null;
+  vaccinations: VaccinationSummary[];
+  vaccinationStatus: VaccinationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+

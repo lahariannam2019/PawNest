@@ -3,6 +3,40 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 3: Pet Profiles & Vaccinations] - 2026-10-13
+### Added
+- **Pet Management Backend (`apps/api/src/modules/pets`):**
+  - Full CRUD endpoints: `GET /pets`, `POST /pets`, `GET /pets/:id`, `PATCH /pets/:id`, `DELETE /pets/:id`.
+  - Vaccinations management: `POST /pets/:id/vaccinations`, `PATCH /pets/:id/vaccinations/:vaccinationId`, `DELETE /pets/:id/vaccinations/:vaccinationId`.
+  - Automatic size tier derivation (`deriveSizeTier`) based on species and weight in kg (XS, S, M, L, XL).
+  - Dynamic vaccination status computation (`getVaccineStatus`): `UP_TO_DATE`, `DUE_SOON` (within 30 days), and `EXPIRED`.
+  - Enforced soft-deletion booking conflict guard (409 Conflict with `ACTIVE_BOOKINGS_EXIST` if active future bookings exist for the pet).
+  - Strict resource isolation: cross-user lookups on foreign pets or foreign vaccinations return `404 Not Found` (never 403) to prevent resource enumeration.
+- **Storage & Pet Avatar Uploads (`apps/api/src/modules/uploads`):**
+  - Storage adapter architecture (`LocalStorageAdapter`) generating HMAC-SHA256 signed upload and download URLs with 1-hour expiration.
+  - Endpoints: `POST /uploads/presign`, `POST /uploads/direct`, and `GET /uploads/file`.
+  - Secure MIME type validation (`image/jpeg`, `image/png`, `image/webp`), 5 MB maximum file size, and cryptographic signature verification.
+- **Frontend Pet Experience (`apps/web`):**
+  - Responsive Dashboard Layout (`/dashboard/layout.tsx`): Persistent desktop sidebar + mobile bottom tab bar (Home, Pets, Bookings, Orders, Account) with active route indicators and authentication redirect guard.
+  - Dashboard Overview (`/dashboard/page.tsx`): Welcome greeting, global vaccination alert banner, quick care shortcuts, and quick-access pet grid.
+  - Pet Directory (`/dashboard/pets/page.tsx`): List of pet profiles with species badges, size tiers, vaccination indicators, and empty state with new pet CTA.
+  - Pet Creation Wizard (`/dashboard/pets/new/page.tsx`): Complete intake form capturing name, species, breed, sex, birth date, weight, temperament tags, fear triggers, medical conditions, allergies, and care notes.
+  - Pet Profile Detail (`/dashboard/pets/[id]/page.tsx`): Tabbed layout (Overview, Vaccinations, Care Notes), quick stats, edit pet modal, safe delete modal with conflict handling, and full vaccination history.
+  - Vaccination Manager (`VaccinationList.tsx`): Direct record addition with common vaccine presets (Rabies, DHPP, Bordetella, FVRCP, FeLV), inline editing, and deletion confirmation.
+  - UI Components: `PetCard` (signature arched portrait), `VaccineStatusBadge`, `VaccineReminderBanner`, and `AvatarUploader` (direct presigned upload with preview).
+
+### Verified
+- **API Test Suite:** 16 comprehensive integration and authorization tests in `apps/api/src/modules/pets/pets.test.ts` covering:
+  - Pet creation with auto-derived size tiers.
+  - Adding, editing, and deleting vaccination records with status tracking.
+  - Safe deletion prevention (409) when active future bookings exist for the pet.
+  - Cross-user authorization isolation returning 404 for User B attempting to view, edit, delete, or modify User A's pet or vaccination records.
+  - Presigned upload issuance, HMAC verification, direct upload, and signed download streaming.
+- **Frontend Unit Tests:** 16 tests in `apps/web/src/lib/pets.test.ts` and `canUse3D.test.ts` verifying size tier derivations and dynamic vaccination status calculations.
+- **TypeScript & Production Build:** Monorepo typecheck passed cleanly (`pnpm -r typecheck`); Next.js production build compiled 20 pages and routes with zero errors.
+
+---
+
 ## [Phase 2: Authentication & Account Management] - 2026-10-13
 ### Added
 - **Database Engine & Persistence:** Configured and started persistent local PostgreSQL 18.4 runtime (`pnpm db:start`); executed initial database migration `20261013171906_init` establishing all 23 Prisma models, enums, indices, and relations.

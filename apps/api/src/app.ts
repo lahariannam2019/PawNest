@@ -17,6 +17,8 @@ import { ErrorCode } from '@pawnest/shared';
 import { authPlugin } from './plugins/auth.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { userRoutes } from './modules/users/routes.js';
+import { petRoutes } from './modules/pets/routes.js';
+import { uploadRoutes } from './modules/uploads/routes.js';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -159,9 +161,11 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
         };
       });
 
-      // Register auth and user route modules
+      // Register auth, user, pet, and upload route modules
       v1.register(authRoutes, { prefix: '/auth' });
       v1.register(userRoutes);
+      v1.register(petRoutes);
+      v1.register(uploadRoutes);
     },
     { prefix: '/api/v1' }
   );

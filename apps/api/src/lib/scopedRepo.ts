@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from './prisma.js';
 import { NotFoundError } from './errors.js';
 
@@ -47,7 +48,7 @@ export function scopedRepo(userId: string) {
           where: { ...(args.where || {}), userId, deletedAt: null },
         });
       },
-      findById: async (id: string, include?: Parameters<typeof prisma.pet.findFirst>[0]['include']) => {
+      findById: async (id: string, include?: Prisma.PetInclude) => {
         const record = await prisma.pet.findFirst({
           where: { id, userId, deletedAt: null },
           include,
@@ -75,7 +76,7 @@ export function scopedRepo(userId: string) {
           where: { ...(args.where || {}), userId },
         });
       },
-      findById: async (id: string, include?: Parameters<typeof prisma.booking.findFirst>[0]['include']) => {
+      findById: async (id: string, include?: Prisma.BookingInclude) => {
         const record = await prisma.booking.findFirst({
           where: { id, userId },
           include,
@@ -101,7 +102,7 @@ export function scopedRepo(userId: string) {
           where: { ...(args.where || {}), userId },
         });
       },
-      findById: async (id: string, include?: Parameters<typeof prisma.order.findFirst>[0]['include']) => {
+      findById: async (id: string, include?: Prisma.OrderInclude) => {
         const record = await prisma.order.findFirst({
           where: { id, userId },
           include,

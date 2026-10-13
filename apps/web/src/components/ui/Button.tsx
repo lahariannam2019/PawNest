@@ -20,6 +20,8 @@ const buttonVariants = cva(
           'bg-transparent text-[var(--color-sage-700)] hover:text-[var(--color-sage-800)] underline-offset-4 hover:underline p-0 h-auto',
         peach:
           'bg-[var(--color-peach-100)] text-[var(--color-peach-700)] hover:bg-[var(--color-peach-200)] active:scale-98',
+        danger:
+          'bg-rose-700 text-white hover:bg-rose-800 active:scale-98 shadow-sm',
       },
       size: {
         sm: 'h-9 px-3.5 text-xs rounded-[var(--radius-sm)]',
