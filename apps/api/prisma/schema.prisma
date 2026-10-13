@@ -1,0 +1,508 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum Species {
+  DOG
+  CAT
+  OTHER
+}
+
+enum PetSex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum SizeTier {
+  XS
+  S
+  M
+  L
+  XL
+}
+
+enum ProviderType {
+  GROOMER
+  BOARDING
+  VET_CLINIC
+}
+
+enum BookingKind {
+  GROOMING
+  BOARDING
+  VET
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  DEMO_PLACED
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMode {
+  DEMO
+  STRIPE_TEST
+  STRIPE_LIVE
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+enum FavouriteKind {
+  PROVIDER
+  PRODUCT
+}
+
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String
+  name            String
+  phone           String?
+  role            Role           @default(CUSTOMER)
+  reduceMotion    Boolean        @default(false)
+  notifyEmail     Boolean        @default(true)
+  notifyReminders Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  sessions        Session[]
+  addresses       Address[]
+  pets            Pet[]
+  bookings        Booking[]
+  reviews         Review[]
+  favourites      Favourite[]
+  cart            Cart?
+  orders          Order[]
+  notifications   Notification[]
+  emailTokens     EmailToken[]
+  auditLogs       AuditLog[]
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  familyId     String
+  tokenHash    String    @unique
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model EmailToken {
+  id        String         @id @default(cuid())
+  userId    String
+  type      EmailTokenType
+  tokenHash String         @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  label      String?
+  recipient  String
+  line1      String
+  line2      String?
+  city       String
+  region     String?
+  postalCode String
+  country    String   @db.Char(2)
+  phone      String?
+  isDefault  Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Pet {
+  id              String        @id @default(cuid())
+  userId          String
+  name            String
+  species         Species
+  breed           String?
+  sex             PetSex        @default(UNKNOWN)
+  birthDate       DateTime?
+  approxAgeMonths Int?
+  weightKg        Decimal?      @db.Decimal(5, 2)
+  sizeTier        SizeTier?
+  neutered        Boolean?
+  microchipId     String?
+  allergies       String[]
+  conditions      String[]
+  medications     String[]
+  temperament     String[]
+  fears           String[]
+  notes           String?
+  vetClinicName   String?
+  avatarKey       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaccinations    Vaccination[]
+  bookings        Booking[]
+
+  @@index([userId, deletedAt])
+}
+
+model Vaccination {
+  id             String    @id @default(cuid())
+  petId          String
+  name           String
+  administeredOn DateTime
+  expiresOn      DateTime?
+  vetName        String?
+  notes          String?
+  pet            Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, name])
+}
+
+model Provider {
+  id                String          @id @default(cuid())
+  slug              String          @unique
+  type              ProviderType
+  name              String
+  tagline           String?
+  description       String
+  addressLine       String
+  city              String
+  region            String?
+  country           String          @db.Char(2)
+  lat               Float
+  lng               Float
+  timezone          String
+  phone             String?
+  websiteUrl        String?
+  speciesAccepted   Species[]
+  amenities         String[]
+  imageKeys         String[]
+  ratingAvg         Decimal         @default(0) @db.Decimal(3, 2)
+  ratingCount       Int             @default(0)
+  cancellationHours Int             @default(24)
+  autoConfirm       Boolean         @default(true)
+  isDemo            Boolean         @default(true)
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  services          Service[]
+  hours             ProviderHours[]
+  units             BoardingUnit[]
+  bookings          Booking[]
+  reviews           Review[]
+
+  @@index([type, city])
+  @@index([lat, lng])
+}
+
+model ProviderHours {
+  id         String   @id @default(cuid())
+  providerId String
+  weekday    Int
+  opensAt    String
+  closesAt   String
+  stations   Int      @default(1)
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, weekday, opensAt])
+}
+
+model Service {
+  id             String      @id @default(cuid())
+  providerId     String
+  kind           BookingKind
+  name           String
+  description    String?
+  durationMin    Int
+  bufferMin      Int         @default(10)
+  basePriceCents Int
+  currency       String      @default("USD") @db.Char(3)
+  sizePricing    Json?
+  species        Species[]
+  isAddOn        Boolean     @default(false)
+  isActive       Boolean     @default(true)
+  provider       Provider    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  bookings       Booking[]
+
+  @@index([providerId, kind])
+}
+
+model BoardingUnit {
+  id           String    @id @default(cuid())
+  providerId   String
+  name         String
+  description  String?
+  capacity     Int
+  maxPets      Int       @default(1)
+  nightlyCents Int
+  currency     String    @default("USD") @db.Char(3)
+  amenities    String[]
+  provider     Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  bookings     Booking[]
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  reference        String        @unique
+  userId           String
+  petId            String
+  providerId       String
+  serviceId        String?
+  boardingUnitId   String?
+  kind             BookingKind
+  status           BookingStatus @default(PENDING)
+  startsAt         DateTime
+  endsAt           DateTime
+  priceCents       Int
+  currency         String        @db.Char(3)
+  priceBreakdown   Json
+  addOnIds         String[]
+  notes            String?
+  visitType        String?
+  symptoms         String[]
+  reason           String?
+  careInstructions Json?
+  isDemo           Boolean       @default(true)
+  cancelledAt      DateTime?
+  cancelReason     String?
+  idempotencyKey   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user             User          @relation(fields: [userId], references: [id])
+  pet              Pet           @relation(fields: [petId], references: [id])
+  provider         Provider      @relation(fields: [providerId], references: [id])
+  service          Service?      @relation(fields: [serviceId], references: [id])
+  unit             BoardingUnit? @relation(fields: [boardingUnitId], references: [id])
+  review           Review?
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, status, startsAt])
+  @@index([providerId, startsAt, endsAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  bookingId  String   @unique
+  rating     Int
+  title      String?
+  body       String?
+  isSample   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  provider   Provider @relation(fields: [providerId], references: [id])
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+
+  @@index([providerId, createdAt])
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  parentId  String?
+  sortOrder Int        @default(0)
+  imageKey  String?
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+  products  Product[]
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  name        String
+  brand       String
+  description String
+  details     Json?
+  categoryId  String
+  species     Species[]
+  lifeStage   String[]
+  tags        String[]
+  imageKeys   String[]
+  model3dKey  String?
+  ratingAvg   Decimal          @default(0) @db.Decimal(3, 2)
+  ratingCount Int              @default(0)
+  isDemo      Boolean          @default(true)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  category    Category         @relation(fields: [categoryId], references: [id])
+  variants    ProductVariant[]
+
+  @@index([categoryId, isActive])
+}
+
+model ProductVariant {
+  id             String      @id @default(cuid())
+  productId      String
+  sku            String      @unique
+  name           String
+  priceCents     Int
+  compareAtCents Int?
+  currency       String      @default("USD") @db.Char(3)
+  stock          Int
+  reserved       Int         @default(0)
+  weightGrams    Int?
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  variantId String
+  quantity  Int
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, variantId])
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  number               String      @unique
+  userId               String
+  status               OrderStatus
+  paymentMode          PaymentMode
+  paymentIntentId      String?
+  stripeSessionId      String?     @unique
+  currency             String      @db.Char(3)
+  subtotalCents        Int
+  shippingCents        Int
+  taxCents             Int
+  totalCents           Int
+  shippingAddress      Json
+  isDemo               Boolean     @default(true)
+  idempotencyKey       String?
+  reservationExpiresAt DateTime?
+  placedAt             DateTime    @default(now())
+  paidAt               DateTime?
+  shippedAt            DateTime?
+  deliveredAt          DateTime?
+  cancelledAt          DateTime?
+  user                 User        @relation(fields: [userId], references: [id])
+  items                OrderItem[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, placedAt])
+}
+
+model OrderItem {
+  id             String         @id @default(cuid())
+  orderId        String
+  variantId      String
+  productName    String
+  variantName    String
+  sku            String
+  unitPriceCents Int
+  quantity       Int
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+}
+
+model Favourite {
+  id         String        @id @default(cuid())
+  userId     String
+  kind       FavouriteKind
+  providerId String?
+  productId  String?
+  createdAt  DateTime      @default(now())
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, providerId, productId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  linkUrl   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model NewsletterSignup {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model IdempotencyRecord {
+  key            String
+  userId         String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+
+  @@id([userId, key])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  ip        String?
+  meta      Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+}

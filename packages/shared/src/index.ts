@@ -1,0 +1,348 @@
+import { z } from 'zod';
+
+// ==========================================
+// ENUMS & CONSTANTS
+// ==========================================
+
+export const Role = {
+  CUSTOMER: 'CUSTOMER',
+  ADMIN: 'ADMIN',
+} as const;
+export type Role = (typeof Role)[keyof typeof Role];
+
+export const Species = {
+  DOG: 'DOG',
+  CAT: 'CAT',
+  OTHER: 'OTHER',
+} as const;
+export type Species = (typeof Species)[keyof typeof Species];
+
+export const PetSex = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  UNKNOWN: 'UNKNOWN',
+} as const;
+export type PetSex = (typeof PetSex)[keyof typeof PetSex];
+
+export const SizeTier = {
+  XS: 'XS',
+  S: 'S',
+  M: 'M',
+  L: 'L',
+  XL: 'XL',
+} as const;
+export type SizeTier = (typeof SizeTier)[keyof typeof SizeTier];
+
+export const ProviderType = {
+  GROOMER: 'GROOMER',
+  BOARDING: 'BOARDING',
+  VET_CLINIC: 'VET_CLINIC',
+} as const;
+export type ProviderType = (typeof ProviderType)[keyof typeof ProviderType];
+
+export const BookingKind = {
+  GROOMING: 'GROOMING',
+  BOARDING: 'BOARDING',
+  VET: 'VET',
+} as const;
+export type BookingKind = (typeof BookingKind)[keyof typeof BookingKind];
+
+export const BookingStatus = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  NO_SHOW: 'NO_SHOW',
+} as const;
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
+
+export const OrderStatus = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
+  DEMO_PLACED: 'DEMO_PLACED',
+  PAID: 'PAID',
+  PROCESSING: 'PROCESSING',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+} as const;
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+
+export const PaymentMode = {
+  DEMO: 'DEMO',
+  STRIPE_TEST: 'STRIPE_TEST',
+  STRIPE_LIVE: 'STRIPE_LIVE',
+} as const;
+export type PaymentMode = (typeof PaymentMode)[keyof typeof PaymentMode];
+
+export const FavouriteKind = {
+  PROVIDER: 'PROVIDER',
+  PRODUCT: 'PRODUCT',
+} as const;
+export type FavouriteKind = (typeof FavouriteKind)[keyof typeof FavouriteKind];
+
+// ==========================================
+// ERROR CODES (RFC 7807 problem+json)
+// ==========================================
+
+export const ErrorCode = {
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  SLOT_TAKEN: 'SLOT_TAKEN',
+  CART_CHANGED: 'CART_CHANGED',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  TOKEN_REUSED: 'TOKEN_REUSED',
+  VACCINES_REQUIRED: 'VACCINES_REQUIRED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+
+export interface ProblemDetail {
+  type: string;
+  title: string;
+  status: number;
+  code: ErrorCode | string;
+  detail: string;
+  errors?: Array<{ field: string; message: string }>;
+  requestId?: string;
+}
+
+// ==========================================
+// AUTH SCHEMAS
+// ==========================================
+
+export const RegisterSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(10, 'Password must be at least 10 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().optional(),
+});
+export type RegisterInput = z.infer<typeof RegisterSchema>;
+
+export const LoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, 'Password is required'),
+});
+export type LoginInput = z.infer<typeof LoginSchema>;
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(10, 'Password must be at least 10 characters'),
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(10, 'Password must be at least 10 characters'),
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
+
+// ==========================================
+// PET SCHEMAS
+// ==========================================
+
+export const CreatePetSchema = z.object({
+  name: z.string().min(1, 'Pet name is required'),
+  species: z.nativeEnum(Species),
+  breed: z.string().optional().nullable(),
+  sex: z.nativeEnum(PetSex).default(PetSex.UNKNOWN),
+  birthDate: z.string().datetime().optional().nullable(),
+  approxAgeMonths: z.number().int().min(0).max(360).optional().nullable(),
+  weightKg: z.number().min(0.1).max(150).optional().nullable(),
+  sizeTier: z.nativeEnum(SizeTier).optional().nullable(),
+  neutered: z.boolean().optional().nullable(),
+  microchipId: z.string().optional().nullable(),
+  allergies: z.array(z.string()).default([]),
+  conditions: z.array(z.string()).default([]),
+  medications: z.array(z.string()).default([]),
+  temperament: z.array(z.string()).default([]),
+  fears: z.array(z.string()).default([]),
+  notes: z.string().optional().nullable(),
+  vetClinicName: z.string().optional().nullable(),
+  avatarKey: z.string().optional().nullable(),
+});
+export type CreatePetInput = z.infer<typeof CreatePetSchema>;
+
+export const UpdatePetSchema = CreatePetSchema.partial();
+export type UpdatePetInput = z.infer<typeof UpdatePetSchema>;
+
+export const CreateVaccinationSchema = z.object({
+  name: z.string().min(1, 'Vaccine name is required'),
+  administeredOn: z.string().datetime(),
+  expiresOn: z.string().datetime().optional().nullable(),
+  vetName: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+export type CreateVaccinationInput = z.infer<typeof CreateVaccinationSchema>;
+
+// ==========================================
+// PROVIDER & AVAILABILITY
+// ==========================================
+
+export const ProviderFilterSchema = z.object({
+  type: z.nativeEnum(ProviderType).optional(),
+  q: z.string().optional(),
+  species: z.nativeEnum(Species).optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  minRating: z.coerce.number().optional(),
+  city: z.string().optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().min(1).max(50).default(20),
+});
+export type ProviderFilterInput = z.infer<typeof ProviderFilterSchema>;
+
+export const AvailabilityQuerySchema = z.object({
+  serviceId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  petId: z.string().optional(),
+});
+export type AvailabilityQueryInput = z.infer<typeof AvailabilityQuerySchema>;
+
+export const BoardingAvailabilityQuerySchema = z.object({
+  checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-in must be YYYY-MM-DD'),
+  checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-out must be YYYY-MM-DD'),
+  petCount: z.coerce.number().int().min(1).max(5).default(1),
+});
+export type BoardingAvailabilityQueryInput = z.infer<typeof BoardingAvailabilityQuerySchema>;
+
+export interface AvailabilitySlot {
+  startsAt: string; // ISO UTC
+  endsAt: string;   // ISO UTC
+  remaining: number;
+}
+
+// ==========================================
+// BOOKING SCHEMAS
+// ==========================================
+
+export const CreateBookingSchema = z.object({
+  petId: z.string().min(1),
+  providerId: z.string().min(1),
+  kind: z.nativeEnum(BookingKind),
+  serviceId: z.string().optional().nullable(),
+  boardingUnitId: z.string().optional().nullable(),
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  addOnIds: z.array(z.string()).default([]),
+  notes: z.string().optional().nullable(),
+  visitType: z.string().optional().nullable(),
+  symptoms: z.array(z.string()).default([]),
+  reason: z.string().optional().nullable(),
+  careInstructions: z
+    .object({
+      feeding: z.string().optional(),
+      medications: z.string().optional(),
+      behaviour: z.string().optional(),
+      emergencyContact: z.string().optional(),
+    })
+    .optional()
+    .nullable(),
+});
+export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
+
+// ==========================================
+// CART & CHECKOUT SCHEMAS
+// ==========================================
+
+export const AddCartItemSchema = z.object({
+  variantId: z.string().min(1),
+  quantity: z.number().int().min(1).max(20),
+});
+export type AddCartItemInput = z.infer<typeof AddCartItemSchema>;
+
+export const UpdateCartItemSchema = z.object({
+  quantity: z.number().int().min(1).max(20),
+});
+export type UpdateCartItemInput = z.infer<typeof UpdateCartItemSchema>;
+
+export const MergeCartSchema = z.object({
+  items: z.array(
+    z.object({
+      variantId: z.string(),
+      quantity: z.number().int().min(1).max(20),
+    })
+  ).max(50),
+});
+export type MergeCartInput = z.infer<typeof MergeCartSchema>;
+
+export const ShippingAddressSchema = z.object({
+  recipient: z.string().min(2),
+  line1: z.string().min(3),
+  line2: z.string().optional().nullable(),
+  city: z.string().min(2),
+  region: z.string().optional().nullable(),
+  postalCode: z.string().min(2),
+  country: z.string().length(2),
+  phone: z.string().optional().nullable(),
+});
+export type ShippingAddressInput = z.infer<typeof ShippingAddressSchema>;
+
+export const CheckoutSessionSchema = z.object({
+  shippingAddress: ShippingAddressSchema,
+  paymentMode: z.nativeEnum(PaymentMode).default(PaymentMode.DEMO),
+});
+export type CheckoutSessionInput = z.infer<typeof CheckoutSessionSchema>;
+
+// ==========================================
+// ENTITY DTO INTERFACES
+// ==========================================
+
+export interface UserSummary {
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  role: Role;
+  reduceMotion: boolean;
+  emailVerified: boolean;
+}
+
+export interface ProviderSummary {
+  id: string;
+  slug: string;
+  type: ProviderType;
+  name: string;
+  tagline: string | null;
+  description: string;
+  addressLine: string;
+  city: string;
+  region: string | null;
+  country: string;
+  lat: number;
+  lng: number;
+  timezone: string;
+  speciesAccepted: Species[];
+  amenities: string[];
+  imageKeys: string[];
+  ratingAvg: number;
+  ratingCount: number;
+  priceFromCents?: number;
+  isDemo: boolean;
+}
+
+export interface ProductSummary {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  description: string;
+  categoryName: string;
+  species: Species[];
+  tags: string[];
+  imageKeys: string[];
+  minPriceCents: number;
+  ratingAvg: number;
+  ratingCount: number;
+  inStock: boolean;
+  isDemo: boolean;
+}
