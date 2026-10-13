@@ -14,6 +14,10 @@ import { AppError } from './lib/errors.js';
 import { prisma } from './lib/prisma.js';
 import { ErrorCode } from '@pawnest/shared';
 
+import { authPlugin } from './plugins/auth.js';
+import { authRoutes } from './modules/auth/routes.js';
+import { userRoutes } from './modules/users/routes.js';
+
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
     ...opts,
@@ -46,6 +50,9 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
     max: 120,
     timeWindow: '1 minute',
   });
+
+  // Register Auth Decorator Plugin
+  app.register(authPlugin);
 
   // OpenAPI Swagger Documentation
   if (process.env.ENABLE_DOCS !== 'false') {
@@ -151,6 +158,10 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
           isDemo: true,
         };
       });
+
+      // Register auth and user route modules
+      v1.register(authRoutes, { prefix: '/auth' });
+      v1.register(userRoutes);
     },
     { prefix: '/api/v1' }
   );

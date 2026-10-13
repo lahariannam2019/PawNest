@@ -26,7 +26,7 @@ export function SuppliesPreview() {
       compareAtCents: 4800,
       rating: 4.9,
       reviews: 84,
-      image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-shop-01.jpg',
     },
     {
       id: 'p-2',
@@ -38,7 +38,7 @@ export function SuppliesPreview() {
       compareAtCents: null,
       rating: 5.0,
       reviews: 42,
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=600&q=80',
+      image: '/images/hero-02.jpg',
     },
     {
       id: 'p-3',
@@ -50,7 +50,7 @@ export function SuppliesPreview() {
       compareAtCents: 14000,
       rating: 4.8,
       reviews: 36,
-      image: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-board-01.jpg',
     },
     {
       id: 'p-4',
@@ -62,7 +62,7 @@ export function SuppliesPreview() {
       compareAtCents: null,
       rating: 4.9,
       reviews: 57,
-      image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-groom-01.jpg',
     },
   ];
 

@@ -39,4 +39,16 @@ describe('PawNest API - Core Health & Info Endpoints', () => {
     expect(body.version).toBe('1.0.0');
     expect(body.isDemo).toBe(true);
   });
+
+  it('GET /ready returns 200 pass when PostgreSQL database is connected', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/ready',
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.payload);
+    expect(body.status).toBe('pass');
+    expect(body.database).toBe('connected');
+  });
 });

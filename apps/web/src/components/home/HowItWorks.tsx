@@ -13,21 +13,21 @@ export function HowItWorks() {
       title: 'Create your companion profile',
       desc: 'Add breed, age, weight, vaccine history, and personality quirks once. PawNest automatically matches size tiers and service eligibility.',
       icon: UserCheck,
-      image: 'https://images.unsplash.com/photo-1534361960057-19889db9621e?auto=format&fit=crop&w=800&q=80',
+      image: '/images/how-01.jpg',
     },
     {
       num: '02',
       title: 'Select vetted care or supplies',
       desc: 'Browse groomers, quiet boarding suites, or neighbourhood vets with real computed availability and upfront transparent prices.',
       icon: CalendarCheck,
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=800&q=80',
+      image: '/images/how-02.jpg',
     },
     {
       num: '03',
       title: 'Relax and manage from one dashboard',
       desc: 'Track appointments, view vaccine expiration alerts, one-tap reschedule when life changes, and reorder favourite food effortlessly.',
       icon: Sparkles,
-      image: 'https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=800&q=80',
+      image: '/images/how-03.jpg',
     },
   ];
 

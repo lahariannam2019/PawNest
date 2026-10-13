@@ -12,7 +12,7 @@ export function SampleStories() {
       quote:
         'Finding trustworthy boarding used to take me a week of phone tag. With PawNest, Oliver’s feeding routine and vaccines are already verified, and the booking was confirmed in minutes.',
       service: 'Boarding at Clover Meadow',
-      image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=400&q=80',
+      image: '/images/story-01.jpg',
     },
     {
       name: 'Daniel & Maple',
@@ -20,7 +20,7 @@ export function SampleStories() {
       quote:
         'As a first-time puppy parent, having vet appointment scheduling alongside grooming tips and starter supplies gave me so much peace of mind.',
       service: 'Wellness Visit at Veritas Clinic',
-      image: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=400&q=80',
+      image: '/images/story-02.jpg',
     },
     {
       name: 'Priya, Luna & Toby',
@@ -28,7 +28,7 @@ export function SampleStories() {
       quote:
         'Managing care for both a dog and a cat from one family dashboard is unmatched. Grooming rebooking is literally one click.',
       service: 'Artisan Grooming & Care',
-      image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80',
+      image: '/images/story-03.jpg',
     },
   ];
 

@@ -81,6 +81,12 @@ export const FavouriteKind = {
 } as const;
 export type FavouriteKind = (typeof FavouriteKind)[keyof typeof FavouriteKind];
 
+export const EmailTokenType = {
+  VERIFY_EMAIL: 'VERIFY_EMAIL',
+  RESET_PASSWORD: 'RESET_PASSWORD',
+} as const;
+export type EmailTokenType = (typeof EmailTokenType)[keyof typeof EmailTokenType];
+
 // ==========================================
 // ERROR CODES (RFC 7807 problem+json)
 // ==========================================

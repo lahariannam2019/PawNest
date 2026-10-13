@@ -21,7 +21,7 @@ export function FeaturedProviders() {
       priceFrom: 5500,
       rating: 4.9,
       reviews: 48,
-      image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-groom-01.jpg',
     },
     {
       slug: 'clover-meadow-boarding',
@@ -31,7 +31,7 @@ export function FeaturedProviders() {
       priceFrom: 7500,
       rating: 4.8,
       reviews: 34,
-      image: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-board-01.jpg',
     },
     {
       slug: 'veritas-animal-hospital',
@@ -41,7 +41,7 @@ export function FeaturedProviders() {
       priceFrom: 8500,
       rating: 5.0,
       reviews: 62,
-      image: 'https://images.unsplash.com/photo-1628009368231-7bb7cfcb0def?auto=format&fit=crop&w=600&q=80',
+      image: '/images/svc-vet-01.jpg',
     },
     {
       slug: 'sage-hound-groomers',
@@ -51,7 +51,7 @@ export function FeaturedProviders() {
       priceFrom: 4800,
       rating: 4.9,
       reviews: 29,
-      image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=600&q=80',
+      image: '/images/how-02.jpg',
     },
     {
       slug: 'haven-pet-sanctuary',
@@ -61,7 +61,7 @@ export function FeaturedProviders() {
       priceFrom: 9000,
       rating: 4.9,
       reviews: 51,
-      image: 'https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=600&q=80',
+      image: '/images/how-03.jpg',
     },
     {
       slug: 'north-brooklyn-vet',
@@ -71,7 +71,7 @@ export function FeaturedProviders() {
       priceFrom: 7000,
       rating: 4.7,
       reviews: 38,
-      image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=600&q=80',
+      image: '/images/pet-01.jpg',
     },
   ];
 

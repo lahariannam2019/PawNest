@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Calendar, ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { ArchImage } from '../media/ArchImage';
+import { Hero3D } from '../media/Hero3D';
 import { SearchComposer } from './SearchComposer';
 import { Reveal } from '../motion/Reveal';
 
@@ -54,13 +54,10 @@ export function Hero() {
           {/* Right: Signature Arch Photo & Floating Chips */}
           <div className="lg:col-span-5 relative flex justify-center lg:justify-end">
             <div className="relative w-full max-w-[380px] sm:max-w-[420px]">
-              {/* Arch Photo */}
-              <ArchImage
-                src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=85"
+              {/* Arch Photo / 3D Hero */}
+              <Hero3D
+                posterSrc="/images/hero-01.jpg"
                 alt="A golden retriever resting peacefully by a sunlit window in morning light"
-                aspect="hero"
-                priority
-                className="w-full"
               />
 
               {/* Floating Context Chip 1 (Top Left) */}

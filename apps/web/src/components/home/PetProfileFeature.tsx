@@ -21,7 +21,7 @@ export function PetProfileFeature() {
                   <div className="flex items-center gap-4">
                     <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--color-sage-500)] shadow-sm shrink-0">
                       <Image
-                        src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=400&q=80"
+                        src="/images/pet-01.jpg"
                         alt="Barnaby the Golden Retriever"
                         fill
                         className="object-cover"
