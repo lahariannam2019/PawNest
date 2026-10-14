@@ -51,15 +51,18 @@ describe('PawNest Pet Profiles & Vaccinations End-to-End', () => {
   });
 
   afterAll(async () => {
-    await prisma.booking.deleteMany({
-      where: { userId: { in: [userAId, userBId] } },
-    });
-    await prisma.pet.deleteMany({
-      where: { userId: { in: [userAId, userBId] } },
-    });
-    await prisma.user.deleteMany({
-      where: { id: { in: [userAId, userBId] } },
-    });
+    const userIds = [userAId, userBId].filter(Boolean) as string[];
+    if (userIds.length > 0) {
+      await prisma.booking.deleteMany({
+        where: { userId: { in: userIds } },
+      });
+      await prisma.pet.deleteMany({
+        where: { userId: { in: userIds } },
+      });
+      await prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+    }
     await app.close();
   });
 

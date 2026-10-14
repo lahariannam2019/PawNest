@@ -220,12 +220,18 @@ describe('PawNest Boarding & Multi-Day Stays End-to-End (Phase 5)', () => {
     await prisma.boardingUnit.deleteMany({ where: { providerId: testProviderId } });
     await prisma.provider.deleteMany({ where: { id: testProviderId } });
 
-    await prisma.vaccination.deleteMany({ where: { petId: { in: [eligibleDogId, missingVaccineDogId, expiringVaccineDogId] } } });
-    await prisma.pet.deleteMany({ where: { id: { in: [eligibleDogId, missingVaccineDogId, expiringVaccineDogId] } } });
+    const petIds = [eligibleDogId, missingVaccineDogId, expiringVaccineDogId].filter(Boolean) as string[];
+    if (petIds.length > 0) {
+      await prisma.vaccination.deleteMany({ where: { petId: { in: petIds } } });
+      await prisma.pet.deleteMany({ where: { id: { in: petIds } } });
+    }
 
-    await prisma.idempotencyRecord.deleteMany({ where: { userId: { in: [userAId, userBId] } } });
-    await prisma.session.deleteMany({ where: { userId: { in: [userAId, userBId] } } });
-    await prisma.user.deleteMany({ where: { id: { in: [userAId, userBId] } } });
+    const userIds = [userAId, userBId].filter(Boolean) as string[];
+    if (userIds.length > 0) {
+      await prisma.idempotencyRecord.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    }
 
     await app.close();
   });
