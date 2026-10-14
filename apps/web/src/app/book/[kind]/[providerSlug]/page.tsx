@@ -24,6 +24,9 @@ import {
   BookingKind,
   validateBoardingVaccines,
   VaccineCheckResult,
+  STANDARD_VET_VISIT_TYPES,
+  VET_SYMPTOM_OPTIONS,
+  EMERGENCY_DISCLAIMER_TEXT,
 } from '@pawnest/shared';
 import {
   ChevronLeft,
@@ -31,6 +34,7 @@ import {
   Sparkles,
   Check,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Calendar,
   ShieldAlert,
@@ -39,6 +43,12 @@ import {
   Clock,
   Heart,
   FileText,
+  Stethoscope,
+  Activity,
+  Syringe,
+  Info,
+  PhoneCall,
+  Scissors,
 } from 'lucide-react';
 
 export default function BookingWizardPage() {
@@ -48,8 +58,10 @@ export default function BookingWizardPage() {
   const { user, isLoading: authLoading } = useAuth();
 
   const kindParam = (params?.kind as string)?.toUpperCase();
-  const kind = (kindParam === 'BOARDING' ? 'BOARDING' : 'GROOMING') as BookingKind;
+  const kind = (kindParam === 'BOARDING' ? 'BOARDING' : kindParam === 'VET' ? 'VET' : 'GROOMING') as BookingKind;
   const isBoarding = kind === 'BOARDING';
+  const isVet = kind === 'VET';
+  const isGrooming = !isBoarding && !isVet;
 
   const providerSlug = params?.providerSlug as string;
   const preselectedServiceId = searchParams?.get('serviceId');
@@ -84,9 +96,15 @@ export default function BookingWizardPage() {
   const [unitAvailabilities, setUnitAvailabilities] = useState<BoardingUnitAvailability[]>([]);
   const [loadingAvail, setLoadingAvail] = useState(false);
 
-  // Grooming Specific Selections
+  // Grooming & Vet Specific Selections
   const [selectedService, setSelectedService] = useState<ServiceSummary | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
+
+  // Veterinary Specific Selections
+  const [visitType, setVisitType] = useState<string>('WELLNESS');
+  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [reason, setReason] = useState<string>('Routine preventive examination and health screening');
+  const [emergencyAcknowledged, setEmergencyAcknowledged] = useState<boolean>(false);
 
   // Shared Selections
   const [selectedPet, setSelectedPet] = useState<PetSummary | null>(null);
@@ -156,8 +174,10 @@ export default function BookingWizardPage() {
         }
 
         // Auto-select service if passed
-        if (preselectedServiceId && provData.services) {
-          const match = provData.services.find((s) => s.id === preselectedServiceId);
+        if (provData.services && provData.services.length > 0) {
+          const match = preselectedServiceId
+            ? provData.services.find((s) => s.id === preselectedServiceId)
+            : provData.services.find((s) => !s.isAddOn);
           if (match) setSelectedService(match);
         }
       })
@@ -179,12 +199,12 @@ export default function BookingWizardPage() {
     let mounted = true;
     setLoadingAvail(true);
 
-    apiFetch<{ availability: BoardingUnitAvailability[] }>(
-      `/providers/${provider.slug}/boarding-availability?checkIn=${checkIn}&checkOut=${checkOut}`
+    apiFetch<{ units: BoardingUnitAvailability[] }>(
+      `/providers/${provider.slug}/boarding-availability?checkIn=${checkIn}&checkOut=${checkOut}&petCount=1`
     )
       .then((data) => {
         if (mounted) {
-          setUnitAvailabilities(data.availability || []);
+          setUnitAvailabilities(data.units || []);
         }
       })
       .catch((err) => {
@@ -199,19 +219,14 @@ export default function BookingWizardPage() {
     };
   }, [isBoarding, provider, checkIn, checkOut]);
 
-  // Re-run Vaccine Validation when selectedPet or checkOut changes
+  // Live Vaccination Check whenever pet or checkOut changes
   useEffect(() => {
-    if (!isBoarding || !selectedPet) return;
-    const checkOutDate = new Date(`${checkOut}T11:00:00Z`);
-    const result = validateBoardingVaccines(
-      selectedPet.species,
-      selectedPet.vaccinations || [],
-      checkOutDate
-    );
-    setVaccineCheck(result);
+    if (!isBoarding || !selectedPet || !checkOut) return;
+    const res = validateBoardingVaccines(selectedPet.species, selectedPet.vaccinations || [], checkOut);
+    setVaccineCheck(res);
   }, [isBoarding, selectedPet, checkOut]);
 
-  // Fetch Server Quote
+  // Quote Calculation
   useEffect(() => {
     if (!selectedPet || !provider) return;
     if (isBoarding && (!selectedUnit || !checkIn || !checkOut)) return;
@@ -220,22 +235,12 @@ export default function BookingWizardPage() {
     let mounted = true;
     setQuoteLoading(true);
 
-    const payload: any = {
-      petId: selectedPet.id,
-      providerId: provider.id,
-      kind,
-      addOnIds: selectedAddOnIds,
-    };
-
-    if (isBoarding) {
-      payload.boardingUnitId = selectedUnit!.id;
-      payload.startsAt = new Date(`${checkIn}T14:00:00Z`).toISOString();
-      payload.endsAt = new Date(`${checkOut}T11:00:00Z`).toISOString();
-    } else {
-      payload.serviceId = selectedService!.id;
-      payload.startsAt = selectedSlot!.startsAt;
-      payload.endsAt = selectedSlot!.endsAt;
-    }
+    const startsAt = isBoarding
+      ? new Date(`${checkIn}T14:00:00Z`).toISOString()
+      : selectedSlot!.startsAt;
+    const endsAt = isBoarding
+      ? new Date(`${checkOut}T11:00:00Z`).toISOString()
+      : selectedSlot!.endsAt;
 
     apiFetch<{
       priceCents: number;
@@ -244,7 +249,16 @@ export default function BookingWizardPage() {
       cancellationHours: number;
     }>('/bookings/quote', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        petId: selectedPet.id,
+        providerId: provider.id,
+        kind,
+        serviceId: isBoarding ? undefined : selectedService?.id,
+        boardingUnitId: isBoarding ? selectedUnit?.id : undefined,
+        startsAt,
+        endsAt,
+        addOnIds: selectedAddOnIds,
+      }),
     })
       .then((res) => {
         if (mounted) setQuote(res);
@@ -278,10 +292,27 @@ export default function BookingWizardPage() {
     );
   }
 
+  function handleToggleSymptom(symptom: string) {
+    setSymptoms((prev) =>
+      prev.includes(symptom) ? prev.filter((item) => item !== symptom) : [...prev, symptom]
+    );
+  }
+
   async function handleConfirmBooking() {
     if (!selectedPet || !provider) return;
     if (isBoarding && (!selectedUnit || !checkIn || !checkOut)) return;
     if (!isBoarding && (!selectedService || !selectedSlot)) return;
+
+    if (isVet) {
+      if (!emergencyAcknowledged) {
+        setSubmitError('You must acknowledge the emergency care disclaimer before scheduling your appointment.');
+        return;
+      }
+      if (!reason.trim()) {
+        setSubmitError('Please provide a primary reason or description of your visit.');
+        return;
+      }
+    }
 
     setSubmitting(true);
     setSubmitError(null);
@@ -310,6 +341,13 @@ export default function BookingWizardPage() {
       bookingPayload.serviceId = selectedService!.id;
       bookingPayload.startsAt = selectedSlot!.startsAt;
       bookingPayload.endsAt = selectedSlot!.endsAt;
+
+      if (isVet) {
+        bookingPayload.visitType = visitType;
+        bookingPayload.symptoms = symptoms;
+        bookingPayload.reason = reason.trim();
+        bookingPayload.emergencyAcknowledged = emergencyAcknowledged;
+      }
     }
 
     try {
@@ -347,7 +385,7 @@ export default function BookingWizardPage() {
         <Header />
         <Container className="flex-1 py-16 text-center">
           <h2 className="text-2xl font-serif text-charcoal-900 font-bold mb-2">Provider Not Found</h2>
-          <Link href={isBoarding ? '/boarding' : '/grooming'}>
+          <Link href={isBoarding ? '/boarding' : isVet ? '/vet' : '/grooming'}>
             <Button variant="primary">Return to Directory</Button>
           </Link>
         </Container>
@@ -357,6 +395,8 @@ export default function BookingWizardPage() {
   }
 
   const addOnServices = services.filter((s) => s.isAddOn);
+  const primaryServices = services.filter((s) => !s.isAddOn);
+  const availableSymptoms = selectedPet?.species === 'CAT' ? VET_SYMPTOM_OPTIONS.CAT : VET_SYMPTOM_OPTIONS.DOG;
 
   return (
     <div className="min-h-screen flex flex-col bg-ivory-100">
@@ -367,7 +407,7 @@ export default function BookingWizardPage() {
           {/* Header Bar */}
           <div className="mb-8">
             <Link
-              href={`/${isBoarding ? 'boarding' : 'grooming'}/${provider.slug}`}
+              href={`/${isBoarding ? 'boarding' : isVet ? 'vet' : 'grooming'}/${provider.slug}`}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal-600 hover:text-sage-700 transition-colors mb-3"
             >
               <ChevronLeft className="w-4 h-4" /> Back to {provider.name}
@@ -376,10 +416,14 @@ export default function BookingWizardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h1 className="text-3xl font-serif font-bold text-charcoal-900">
-                  {isBoarding ? 'Reserve Stay at' : 'Book with'} {provider.name}
+                  {isBoarding
+                    ? `Reserve Stay at ${provider.name}`
+                    : isVet
+                    ? `Schedule Visit with ${provider.name}`
+                    : `Book with ${provider.name}`}
                 </h1>
                 <p className="text-xs text-charcoal-500 mt-1">
-                  {provider.addressLine}, {provider.city} · Interactive reservation
+                  {provider.addressLine}, {provider.city} · Interactive appointment wizard
                 </p>
               </div>
 
@@ -388,6 +432,21 @@ export default function BookingWizardPage() {
               </span>
             </div>
           </div>
+
+          {/* Persistent Emergency Warning for Vet Mode */}
+          {isVet && (
+            <div className="mb-8 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 flex items-start gap-3 text-xs leading-relaxed shadow-2xs">
+              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-amber-900 uppercase tracking-tight text-[11px] block">
+                  Routine Care & Scheduled Visits Only
+                </strong>
+                <span>
+                  {EMERGENCY_DISCLAIMER_TEXT} If your companion has severe respiratory distress, acute bloat, or sudden trauma, transport them to the nearest 24/7 animal emergency hospital immediately.
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Stepper Header */}
           <div className="mb-10 bg-white rounded-2xl p-4 border border-ivory-300 shadow-2xs">
@@ -398,6 +457,13 @@ export default function BookingWizardPage() {
                     { s: 2, label: '2. Pet & Vaccines' },
                     { s: 3, label: '3. Care Routine' },
                     { s: 4, label: '4. Summary' },
+                  ]
+                : isVet
+                ? [
+                    { s: 1, label: '1. Patient Profile' },
+                    { s: 2, label: '2. Clinical Intake' },
+                    { s: 3, label: '3. Doctor Slot' },
+                    { s: 4, label: '4. Review & Triage' },
                   ]
                 : [
                     { s: 1, label: '1. Pet Profile' },
@@ -438,7 +504,6 @@ export default function BookingWizardPage() {
                   </p>
                 </div>
 
-                {/* Calendar Range Picker */}
                 <DateRangePicker
                   checkIn={checkIn}
                   checkOut={checkOut}
@@ -449,52 +514,52 @@ export default function BookingWizardPage() {
                   }}
                 />
 
-                {/* Suite Options */}
                 <div className="space-y-3 pt-2">
-                  <h3 className="text-sm font-serif font-bold text-charcoal-900">
-                    Choose Suite Type for {nights} {nights === 1 ? 'Night' : 'Nights'}
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif font-bold text-sm text-charcoal-900">
+                      Available Private Suites ({nights} nights)
+                    </h3>
+                    {loadingAvail && (
+                      <span className="text-xs text-sage-700 flex items-center gap-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying capacity...
+                      </span>
+                    )}
+                  </div>
 
-                  {loadingAvail ? (
-                    <div className="flex items-center justify-center py-10 text-charcoal-500 gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-sage-600" />
-                      <span className="text-xs">Checking real-time suite inventory...</span>
-                    </div>
-                  ) : units.length === 0 ? (
-                    <p className="text-xs text-charcoal-500">No suites configured for this retreat.</p>
+                  {units.length === 0 ? (
+                    <p className="text-xs text-charcoal-500 italic">No boarding suites registered for this facility.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {units.map((unit) => {
                         const avail = unitAvailabilities.find((a) => a.unit.id === unit.id);
                         const isAvailable = avail ? avail.available : true;
+                        const minRemaining = avail?.minRemaining ?? unit.capacity;
                         const isSelected = selectedUnit?.id === unit.id;
 
                         return (
                           <div
                             key={unit.id}
-                            onClick={() => {
-                              if (isAvailable) setSelectedUnit(unit);
-                            }}
-                            className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                              isSelected
-                                ? 'border-sage-600 bg-sage-50/50 ring-2 ring-sage-600/20'
-                                : isAvailable
-                                ? 'border-ivory-300 hover:border-sage-400 bg-white'
-                                : 'border-ivory-200 bg-ivory-50 opacity-60 cursor-not-allowed'
+                            onClick={() => isAvailable && setSelectedUnit(unit)}
+                            className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-4 ${
+                              !isAvailable
+                                ? 'opacity-50 bg-ivory-100 border-ivory-300 cursor-not-allowed'
+                                : isSelected
+                                ? 'border-sage-600 bg-sage-50/70 ring-2 ring-sage-600/20 cursor-pointer shadow-xs'
+                                : 'border-ivory-300 bg-white hover:border-sage-300 cursor-pointer'
                             }`}
                           >
-                            <div className="space-y-1">
+                            <div className="space-y-1 flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-serif font-bold text-base text-charcoal-900">
                                   {unit.name}
                                 </span>
                                 {isAvailable ? (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sage-100 text-sage-800">
-                                    {avail ? `${avail.minRemaining} available` : 'Available'}
+                                    {minRemaining} suite{minRemaining > 1 ? 's' : ''} left
                                   </span>
                                 ) : (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">
-                                    Sold Out for Dates
+                                    Fully Reserved
                                   </span>
                                 )}
                               </div>
@@ -562,7 +627,6 @@ export default function BookingWizardPage() {
                   onSelectPet={(pet) => setSelectedPet(pet)}
                 />
 
-                {/* LIVE VACCINATION VERIFICATION BANNER */}
                 {selectedPet && (
                   <div
                     className={`p-5 rounded-2xl border transition-all ${
@@ -707,7 +771,6 @@ export default function BookingWizardPage() {
                   </div>
                 </div>
 
-                {/* Add-ons selection */}
                 {addOnServices.length > 0 && (
                   <div className="pt-4 border-t border-ivory-200 space-y-3">
                     <h3 className="text-sm font-serif font-bold text-charcoal-900">
@@ -757,16 +820,329 @@ export default function BookingWizardPage() {
             )}
 
             {/* ============================================================== */}
-            {/* BOARDING: STEP 4 (Summary & Submit)                             */}
+            {/* VETERINARY: STEP 1 (Patient Selection & Health Background)      */}
             {/* ============================================================== */}
-            {isBoarding && step === 4 && (
+            {isVet && step === 1 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-serif font-bold text-charcoal-900">
-                    Review Your Reservation Details
+                    Select Patient & Review Medical History
                   </h2>
                   <p className="text-xs text-charcoal-600 mt-1">
-                    Please confirm your companion’s stay details and retreat policies below.
+                    Select which companion will be examined. Existing health notes, known allergies, and vaccination history will be pre-filled.
+                  </p>
+                </div>
+
+                <PetSelector
+                  pets={pets}
+                  selectedPetId={selectedPet?.id || undefined}
+                  onSelectPet={(pet) => setSelectedPet(pet)}
+                />
+
+                {/* Patient Health Summary Card */}
+                {selectedPet && (
+                  <div className="p-5 rounded-2xl bg-sage-50/70 border border-sage-200 text-xs text-sage-950 space-y-3">
+                    <div className="flex items-center justify-between border-b border-sage-200/60 pb-2">
+                      <span className="font-serif font-bold text-sm text-sage-900 flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 text-sage-600" /> Patient Profile Context: {selectedPet.name}
+                      </span>
+                      <span className="text-[11px] font-semibold text-sage-800">
+                        {selectedPet.species === 'DOG' ? 'Canine' : 'Feline'} · {selectedPet.breed || 'Mixed'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-sage-700 block mb-0.5">Known Allergies</span>
+                        <p className="text-sage-900 font-medium">
+                          {selectedPet.allergies && selectedPet.allergies.length > 0
+                            ? selectedPet.allergies.join(', ')
+                            : 'None recorded'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-sage-700 block mb-0.5">Chronic Conditions</span>
+                        <p className="text-sage-900 font-medium">
+                          {selectedPet.conditions && selectedPet.conditions.length > 0
+                            ? selectedPet.conditions.join(', ')
+                            : 'None recorded'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-sage-700 block mb-0.5">Current Medications</span>
+                        <p className="text-sage-900 font-medium">
+                          {selectedPet.medications && selectedPet.medications.length > 0
+                            ? selectedPet.medications.join(', ')
+                            : 'None recorded'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedPet.vaccinations && selectedPet.vaccinations.length > 0 && (
+                      <div className="pt-2 border-t border-sage-200/60">
+                        <span className="text-[10px] uppercase font-bold text-sage-700 block mb-1">
+                          Active Vaccinations on File
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedPet.vaccinations.map((vac) => (
+                            <span
+                              key={vac.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-sage-300 text-[11px] text-sage-900 font-medium"
+                            >
+                              <ShieldCheck className="w-3 h-3 text-sage-600" />
+                              {vac.name} (Valid to {vac.expiresOn ? new Date(vac.expiresOn).toLocaleDateString() : 'Active'})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-4 flex justify-end">
+                  <Button variant="primary" disabled={!selectedPet} onClick={() => setStep(2)}>
+                    Continue to Clinical Intake <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VETERINARY: STEP 2 (Clinical Intake & Symptoms Checklist)       */}
+            {/* ============================================================== */}
+            {isVet && step === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-charcoal-900">
+                    Consultation Type & Medical Observations
+                  </h2>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    Select your visit reason and any observations to help your veterinarian prepare appropriate exam protocols.
+                  </p>
+                </div>
+
+                {/* Safety Advisory Banner */}
+                <div className="p-3.5 rounded-xl bg-ivory-100 border border-ivory-300 text-charcoal-700 flex items-start gap-2.5 text-xs">
+                  <Info className="w-4 h-4 text-sage-600 shrink-0 mt-0.5" />
+                  <p>
+                    <strong>Non-Diagnostic Notice:</strong> This symptom intake form is strictly for preparatory triage and scheduling. A licensed veterinarian will perform a physical nose-to-tail clinical examination in person.
+                  </p>
+                </div>
+
+                {/* Visit Type Selector */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                    Visit Category
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {[
+                      { code: 'WELLNESS', label: 'Wellness Exam', icon: Heart },
+                      { code: 'VACCINATION', label: 'Booster Vaccines', icon: Syringe },
+                      { code: 'SICK_PET', label: 'Sick Consultation', icon: Activity },
+                      { code: 'DENTAL', label: 'Dental Staging', icon: Sparkles },
+                      { code: 'FOLLOW_UP', label: 'Follow-up Check', icon: Stethoscope },
+                    ].map((vt) => {
+                      const Icon = vt.icon;
+                      const isSelected = visitType === vt.code;
+                      return (
+                        <button
+                          key={vt.code}
+                          type="button"
+                          onClick={() => setVisitType(vt.code)}
+                          className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-sage-600 text-white border-sage-600 font-semibold shadow-xs'
+                              : 'bg-white border-ivory-300 text-charcoal-700 hover:border-sage-300'
+                          }`}
+                        >
+                          <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-sage-600'}`} />
+                          <span className="text-[11px] leading-tight">{vt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Consultation Service Selection */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                    Select Examination Service
+                  </label>
+                  <div className="space-y-2">
+                    {primaryServices.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedService(s)}
+                        className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between gap-4 transition-all ${
+                          selectedService?.id === s.id
+                            ? 'border-sage-600 bg-sage-50/70 ring-2 ring-sage-600/20'
+                            : 'border-ivory-300 bg-white hover:border-sage-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-serif font-bold text-sm text-charcoal-900">{s.name}</div>
+                          <p className="text-xs text-charcoal-600 max-w-lg mt-0.5">{s.description}</p>
+                          <span className="text-[11px] text-charcoal-400 mt-1 inline-block">
+                            Estimated examination duration: {s.durationMin} minutes
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-serif font-bold text-lg text-charcoal-900">
+                            ${(s.basePriceCents / 100).toFixed(0)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Species-Specific Symptom Checklist */}
+                <div className="space-y-2 pt-2 border-t border-ivory-200">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                    Observed Symptoms or Triage Indicators ({selectedPet?.name})
+                  </label>
+                  <p className="text-[11px] text-charcoal-500">
+                    Select any symptoms observed in recent days to alert the doctor.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {availableSymptoms.map((symp) => {
+                      const isSelected = symptoms.includes(symp);
+                      return (
+                        <button
+                          key={symp}
+                          type="button"
+                          onClick={() => handleToggleSymptom(symp)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            isSelected
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300 font-semibold'
+                              : 'bg-white text-charcoal-700 border border-ivory-300 hover:border-charcoal-400'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}
+                          {symp}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Primary Reason / Description */}
+                <div className="space-y-2 pt-2 border-t border-ivory-200">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                    Primary Reason for Visit & Detailed Notes <span className="text-rose-600">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Describe what you have noticed, when it started, changes in appetite, or specific questions for the doctor..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-ivory-300 text-xs text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-sage-600"
+                  />
+                </div>
+
+                {/* Add-on Diagnostics */}
+                {addOnServices.length > 0 && (
+                  <div className="pt-2 border-t border-ivory-200 space-y-3">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                      Optional In-House Diagnostics & Tests
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {addOnServices.map((addon) => {
+                        const isSelected = selectedAddOnIds.includes(addon.id);
+                        return (
+                          <div
+                            key={addon.id}
+                            onClick={() => handleToggleAddon(addon.id)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                              isSelected
+                                ? 'bg-sage-50 border-sage-600 ring-2 ring-sage-600/20'
+                                : 'bg-white border-ivory-300 hover:border-sage-300'
+                            }`}
+                          >
+                            <div>
+                              <div className="font-semibold text-xs text-charcoal-900">{addon.name}</div>
+                              <p className="text-[10px] text-charcoal-500 mt-0.5 line-clamp-2">{addon.description}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-xs text-charcoal-900">
+                                +${(addon.basePriceCents / 100).toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 flex items-center justify-between">
+                  <Button variant="secondary" onClick={() => setStep(1)}>
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={!selectedService || !reason.trim()}
+                    onClick={() => setStep(3)}
+                  >
+                    Select Doctor Slot <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VETERINARY / GROOMING: STEP 3 (Date & Slot Selection)           */}
+            {/* ============================================================== */}
+            {!isBoarding && step === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-charcoal-900">
+                    {isVet ? 'Select Doctor Examination Time' : 'Select Treatment Slot'}
+                  </h2>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    {isVet
+                      ? 'Available appointments are generated in real-time according to clinical operating hours.'
+                      : 'Choose your preferred date and treatment window.'}
+                  </p>
+                </div>
+
+                {selectedService && (
+                  <SlotPicker
+                    providerSlug={provider.slug}
+                    serviceId={selectedService.id}
+                    selectedSlot={selectedSlot || undefined}
+                    onSelectSlot={setSelectedSlot}
+                  />
+                )}
+
+                <div className="pt-4 flex items-center justify-between">
+                  <Button variant="secondary" onClick={() => setStep(2)}>
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={!selectedSlot}
+                    onClick={() => setStep(4)}
+                  >
+                    Review Appointment <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* VETERINARY: STEP 4 (Emergency Disclaimer & Confirmation)        */}
+            {/* ============================================================== */}
+            {isVet && step === 4 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-charcoal-900">
+                    Review Veterinary Appointment & Medical Disclaimer
+                  </h2>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    Please verify your pet’s clinical consultation details and complete the emergency triage acknowledgement.
                   </p>
                 </div>
 
@@ -777,37 +1153,70 @@ export default function BookingWizardPage() {
                   </div>
                 )}
 
-                {/* Reservation Summary Card */}
+                {/* Appointment Particulars Card */}
                 <div className="p-5 rounded-2xl bg-ivory-50/80 border border-ivory-300 space-y-4 text-xs">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4 border-b border-ivory-200">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Guest</span>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Patient</span>
                       <p className="font-serif font-bold text-sm text-charcoal-900">{selectedPet?.name}</p>
-                      <p className="text-charcoal-500 text-[11px]">{selectedPet?.breed || 'Dog'}</p>
+                      <p className="text-charcoal-500 text-[11px]">{selectedPet?.breed || 'Pet'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Suite</span>
-                      <p className="font-serif font-bold text-sm text-charcoal-900">{selectedUnit?.name}</p>
-                      <p className="text-charcoal-500 text-[11px]">{provider.name}</p>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Clinic</span>
+                      <p className="font-serif font-bold text-sm text-charcoal-900">{provider.name}</p>
+                      <p className="text-charcoal-500 text-[11px]">{provider.city}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Stay Duration</span>
-                      <p className="font-serif font-bold text-sm text-charcoal-900">{nights} Nights</p>
-                      <p className="text-charcoal-500 text-[11px]">{checkIn} → {checkOut}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Health Standard</span>
-                      <p className="font-semibold text-sage-800 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5 text-sage-600" /> Rabies, DHPP, Bordetella
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Appointment</span>
+                      <p className="font-serif font-bold text-sm text-charcoal-900">
+                        {selectedSlot &&
+                          new Date(selectedSlot.startsAt).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                      </p>
+                      <p className="text-charcoal-500 text-[11px]">
+                        {selectedSlot &&
+                          new Date(selectedSlot.startsAt).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC',
+                          })}
                       </p>
                     </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Visit Category</span>
+                      <p className="font-serif font-bold text-sm text-sage-900">{visitType}</p>
+                      <p className="text-charcoal-500 text-[11px]">{selectedService?.name}</p>
+                    </div>
+                  </div>
+
+                  {/* Symptoms & Reason Review */}
+                  <div className="space-y-2 pt-1 pb-3 border-b border-ivory-200">
+                    <span className="text-[10px] uppercase font-bold text-charcoal-400">Reported Observations</span>
+                    {symptoms.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {symptoms.map((s) => (
+                          <span key={s} className="px-2 py-0.5 rounded bg-amber-100/70 text-amber-900 text-[11px] font-medium">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-charcoal-500 text-[11px]">Routine checkup without acute symptom flags.</p>
+                    )}
+                    <p className="text-xs text-charcoal-700 italic pt-1">
+                      &ldquo;{reason}&rdquo;
+                    </p>
                   </div>
 
                   {/* Pricing Breakdown */}
                   <div className="space-y-1.5 pt-1">
                     <div className="flex justify-between text-charcoal-600">
-                      <span>{selectedUnit?.name} ({nights} nights × ${(selectedUnit ? selectedUnit.nightlyCents / 100 : 0).toFixed(0)})</span>
-                      <span>${(quote ? quote.priceBreakdown.baseCents / 100 : (selectedUnit ? selectedUnit.nightlyCents * nights / 100 : 0)).toFixed(2)}</span>
+                      <span>{selectedService?.name}</span>
+                      <span>${(quote ? quote.priceBreakdown.baseCents / 100 : (selectedService?.basePriceCents || 0) / 100).toFixed(2)}</span>
                     </div>
 
                     {quote && quote.priceBreakdown.addOns && quote.priceBreakdown.addOns.length > 0 && (
@@ -822,21 +1231,37 @@ export default function BookingWizardPage() {
                     )}
 
                     <div className="flex justify-between text-sm font-serif font-bold text-charcoal-900 pt-2 border-t border-ivory-300">
-                      <span>Total Reservation Estimate</span>
-                      <span>${(quote ? quote.priceCents / 100 : (selectedUnit ? selectedUnit.nightlyCents * nights / 100 : 0)).toFixed(2)}</span>
+                      <span>Total Consultation & Diagnostics</span>
+                      <span>${(quote ? quote.priceCents / 100 : (selectedService?.basePriceCents || 0) / 100).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Cancellation Policy */}
-                <div className="p-4 rounded-2xl bg-white border border-ivory-300 text-xs text-charcoal-600 space-y-1">
-                  <div className="font-bold text-charcoal-900 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-sage-700" />
-                    Flexible Cancellation Guarantee
+                {/* MANDATORY EMERGENCY DISCLAIMER CHECKBOX */}
+                <div className="p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs">
+                      <strong className="text-amber-900 font-serif text-sm block">
+                        Mandatory Emergency Care Disclaimer & Acknowledgement
+                      </strong>
+                      <p className="text-amber-900/90 leading-relaxed">
+                        {EMERGENCY_DISCLAIMER_TEXT} PawNest does not diagnose pet illnesses online and is not an emergency response service.
+                      </p>
+                    </div>
                   </div>
-                  <p>
-                    Free cancellation up to {provider.cancellationHours || 24} hours before check-in. In demo mode, no credit card is charged.
-                  </p>
+
+                  <label className="flex items-start gap-3 pt-2 border-t border-amber-200 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={emergencyAcknowledged}
+                      onChange={(e) => setEmergencyAcknowledged(e.target.checked)}
+                      className="mt-1 w-4 h-4 rounded border-amber-400 text-sage-600 focus:ring-sage-500 shrink-0"
+                    />
+                    <span className="text-xs text-amber-950 font-medium leading-snug">
+                      I understand and acknowledge that this booking is strictly for scheduled routine or non-emergency veterinary care. If my pet experiences acute respiratory distress, severe trauma, collapsed state, bloat, or life-threatening symptoms, I will take them to an emergency veterinary clinic immediately.
+                    </span>
+                  </label>
                 </div>
 
                 <div className="pt-4 flex items-center justify-between">
@@ -845,16 +1270,16 @@ export default function BookingWizardPage() {
                   </Button>
                   <Button
                     variant="primary"
-                    disabled={submitting}
+                    disabled={submitting || !emergencyAcknowledged}
                     onClick={handleConfirmBooking}
-                    className="px-6 py-3"
+                    className="px-6 py-3 font-semibold"
                   >
                     {submitting ? (
                       <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Confirming Reservation...
+                        <Loader2 className="w-4 h-4 animate-spin" /> Scheduling Appointment...
                       </span>
                     ) : (
-                      'Confirm Boarding Reservation'
+                      'Confirm Veterinary Appointment'
                     )}
                   </Button>
                 </div>
@@ -862,9 +1287,9 @@ export default function BookingWizardPage() {
             )}
 
             {/* ============================================================== */}
-            {/* GROOMING FLOW (Fallback for non-boarding)                       */}
+            {/* GROOMING: STEP 1 (Pet Selection)                               */}
             {/* ============================================================== */}
-            {!isBoarding && step === 1 && (
+            {isGrooming && step === 1 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-serif font-bold text-charcoal-900">Who are we styling today?</h2>
                 <PetSelector
@@ -880,7 +1305,10 @@ export default function BookingWizardPage() {
               </div>
             )}
 
-            {!isBoarding && step === 2 && (
+            {/* ============================================================== */}
+            {/* GROOMING: STEP 2 (Treatment Selection)                         */}
+            {/* ============================================================== */}
+            {isGrooming && step === 2 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-serif font-bold text-charcoal-900">Choose Service</h2>
                 <div className="space-y-2">
@@ -907,25 +1335,10 @@ export default function BookingWizardPage() {
               </div>
             )}
 
-            {!isBoarding && step === 3 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-serif font-bold text-charcoal-900">Select Date & Slot</h2>
-                {selectedService && (
-                  <SlotPicker
-                    providerSlug={provider.slug}
-                    serviceId={selectedService.id}
-                    selectedSlot={selectedSlot || undefined}
-                    onSelectSlot={setSelectedSlot}
-                  />
-                )}
-                <div className="pt-4 flex justify-between">
-                  <Button variant="secondary" onClick={() => setStep(2)}>Back</Button>
-                  <Button variant="primary" disabled={!selectedSlot} onClick={() => setStep(4)}>Continue</Button>
-                </div>
-              </div>
-            )}
-
-            {!isBoarding && step === 4 && (
+            {/* ============================================================== */}
+            {/* GROOMING: STEP 4 (Confirmation)                                */}
+            {/* ============================================================== */}
+            {isGrooming && step === 4 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-serif font-bold text-charcoal-900">Confirm Booking</h2>
                 {submitError && <div className="p-3 bg-rose-50 text-rose-800 text-xs rounded-xl">{submitError}</div>}

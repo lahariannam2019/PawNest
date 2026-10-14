@@ -1131,6 +1131,403 @@ async function main() {
     }
   }
 
+  // 8. Seed Veterinary Clinics (Appendix B)
+  const vetProvidersData = [
+    {
+      slug: 'hudson-river-vet',
+      name: 'Hudson River Veterinary Hospital',
+      tagline: 'Modern compassionate medical care for downtown dogs & cats',
+      description: 'Comprehensive general practice providing advanced preventive diagnostics, fear-free handling, wellness care, and surgical dentistry in Tribeca.',
+      addressLine: '320 Greenwich Street',
+      city: 'New York',
+      region: 'NY',
+      country: 'US',
+      lat: 40.7185,
+      lng: -74.0098,
+      timezone: 'America/New_York',
+      phone: '+1 (212) 555-8387',
+      websiteUrl: 'https://hudsonrivervet.example',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Digital X-Ray', 'In-House Laboratory', 'Dedicated Dental Suite', 'Cat-Friendly Exam Rooms', 'Ultrasound Imaging', 'Full Pharmacy'],
+      imageKeys: ['provider-vet-01', 'provider-vet-02'],
+      ratingAvg: 4.95,
+      ratingCount: 38,
+      cancellationHours: 24,
+      autoConfirm: true,
+      isDemo: true,
+      services: [
+        { name: 'Wellness & Preventive Exam', description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.', durationMin: 30, basePriceCents: 8500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Core Vaccination & Immunity Visit', description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.', durationMin: 20, basePriceCents: 6500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Sick Pet Consultation', description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.', durationMin: 45, basePriceCents: 11000, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Dental Examination', description: 'Oral cavity staging, gingivitis assessment, calculus evaluation, and dental prophylaxis recommendations.', durationMin: 30, basePriceCents: 9500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Post-Treatment Follow-up & Suture Recheck', description: 'Re-evaluation of ongoing treatment response, wound check, suture removal, or medication adjustments.', durationMin: 20, basePriceCents: 4500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Fecal & Parasite Screen', description: 'Centrifugal flotation analysis for giardia and internal parasites.', durationMin: 0, basePriceCents: 4000, species: [Species.DOG, Species.CAT], isAddOn: true },
+        { name: 'Chemistry & Complete Blood Panel', description: 'Same-day in-house organ health profile and complete blood count.', durationMin: 0, basePriceCents: 12500, species: [Species.DOG, Species.CAT], isAddOn: true },
+        { name: 'Universal Microchip Implantation', description: 'ISO standard microchip with lifetime pet registry activation.', durationMin: 0, basePriceCents: 5500, species: [Species.DOG, Species.CAT], isAddOn: true },
+      ],
+      reviews: [
+        { userName: 'Maya Lin', rating: 5, title: 'Exceptional bedside manner', body: 'Dr. Evans and the staff took time to make Barnaby feel comfortable with zero stress. Truly gentle professionals.' },
+        { userName: 'David K.', rating: 5, title: 'Clear diagnostics and transparent pricing', body: 'Bloodwork results came back while we waited. Everything was explained clearly without upselling.' },
+        { userName: 'Sophia R.', rating: 5, title: 'Outstanding cat care', body: 'The feline-only exam room made a huge difference for my anxious cat. Highly recommended.' },
+      ]
+    },
+    {
+      slug: 'brooklyn-heights-vet',
+      name: 'Brooklyn Heights Animal Medical Centre',
+      tagline: 'Fear-Free certified clinical excellence in historic Brooklyn',
+      description: 'Dedicated to stress-free veterinary medicine with quiet rooms, gentle handling, and advanced diagnostic capabilities.',
+      addressLine: '155 Montague Street',
+      city: 'Brooklyn',
+      region: 'NY',
+      country: 'US',
+      lat: 40.6960,
+      lng: -73.9933,
+      timezone: 'America/New_York',
+      phone: '+1 (718) 555-4838',
+      websiteUrl: 'https://brooklynheightsvet.example',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Fear-Free Certified', 'In-House Diagnostic Lab', 'Cat-Only Waiting Zone', 'Acupuncture & Laser Therapy', 'Digital Radiography'],
+      imageKeys: ['provider-vet-03'],
+      ratingAvg: 4.90,
+      ratingCount: 29,
+      cancellationHours: 24,
+      autoConfirm: true,
+      isDemo: true,
+      services: [
+        { name: 'Wellness & Preventive Exam', description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.', durationMin: 30, basePriceCents: 8500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Core Vaccination & Immunity Visit', description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.', durationMin: 20, basePriceCents: 6500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Sick Pet Consultation', description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.', durationMin: 45, basePriceCents: 11000, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Dental Examination', description: 'Oral cavity staging, gingivitis assessment, calculus evaluation, and dental prophylaxis recommendations.', durationMin: 30, basePriceCents: 9500, species: [Species.DOG, Species.CAT], isAddOn: false },
+      ],
+      reviews: [
+        { userName: 'Claire W.', rating: 5, title: 'Calmest vet visit ever', body: 'My dog usually shakes at the clinic, but here he happily took treats and barely noticed his booster shot.' },
+      ]
+    },
+    {
+      slug: 'central-park-west-vet',
+      name: 'Central Park West Veterinary Clinic',
+      tagline: 'Specialized wellness and geriatric health by Central Park',
+      description: 'Premium pet healthcare offering specialized wellness plans, senior pet geriatric care, cardiology screening, and surgery.',
+      addressLine: '215 Central Park West',
+      city: 'New York',
+      region: 'NY',
+      country: 'US',
+      lat: 40.7760,
+      lng: -73.9750,
+      timezone: 'America/New_York',
+      phone: '+1 (212) 555-9271',
+      websiteUrl: 'https://cpwvet.example',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Senior Pet Geriatric Care', 'Cardiology & Ultrasound', 'Dedicated Dental Theatre', 'On-Site Pharmacy', 'Surgical Suite'],
+      imageKeys: ['provider-vet-04'],
+      ratingAvg: 4.88,
+      ratingCount: 34,
+      cancellationHours: 24,
+      autoConfirm: true,
+      isDemo: true,
+      services: [
+        { name: 'Wellness & Preventive Exam', description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.', durationMin: 30, basePriceCents: 9000, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Core Vaccination & Immunity Visit', description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.', durationMin: 20, basePriceCents: 7000, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Sick Pet Consultation', description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.', durationMin: 45, basePriceCents: 11500, species: [Species.DOG, Species.CAT], isAddOn: false },
+      ],
+      reviews: [
+        { userName: 'Elena P.', rating: 5, title: 'Incredible senior dog care', body: 'They manage our senior golden retriever with so much warmth and expertise. Couldn’t be happier.' },
+      ]
+    },
+    {
+      slug: 'prospect-heights-vet',
+      name: 'Prospect Heights Veterinary Atelier',
+      tagline: 'Neighbourhood preventive care and holistic wellness',
+      description: 'Community-oriented veterinary practice emphasizing low-stress examinations, preventive wellness packages, and patient education.',
+      addressLine: '628 Vanderbilt Avenue',
+      city: 'Brooklyn',
+      region: 'NY',
+      country: 'US',
+      lat: 40.6775,
+      lng: -73.9680,
+      timezone: 'America/New_York',
+      phone: '+1 (718) 555-6192',
+      websiteUrl: 'https://prospectheightsvet.example',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Low-Stress Handling', 'Preventive Wellness Plans', 'Rapid Blood Analysis', 'Nutritional Counseling', 'Digital Dental X-Ray'],
+      imageKeys: ['provider-vet-05'],
+      ratingAvg: 4.92,
+      ratingCount: 22,
+      cancellationHours: 24,
+      autoConfirm: true,
+      isDemo: true,
+      services: [
+        { name: 'Wellness & Preventive Exam', description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.', durationMin: 30, basePriceCents: 8500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Core Vaccination & Immunity Visit', description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.', durationMin: 20, basePriceCents: 6500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Sick Pet Consultation', description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.', durationMin: 45, basePriceCents: 11000, species: [Species.DOG, Species.CAT], isAddOn: false },
+      ],
+      reviews: [
+        { userName: 'Marcus T.', rating: 5, title: 'Caring neighborhood clinic', body: 'Super friendly, clear explanations, and they followed up the next day to check on how our puppy was doing.' },
+      ]
+    },
+    {
+      slug: 'astoria-vet-wellness',
+      name: 'Astoria Veterinary Specialists & Wellness',
+      tagline: 'Comprehensive clinical care & diagnostic excellence in Queens',
+      description: 'Modern facility featuring internal medicine diagnostics, comprehensive surgery, cat & dog wellness, and triage guidance in Astoria.',
+      addressLine: '31-18 Broadway',
+      city: 'Astoria',
+      region: 'NY',
+      country: 'US',
+      lat: 40.7650,
+      lng: -73.9230,
+      timezone: 'America/New_York',
+      phone: '+1 (718) 555-3810',
+      websiteUrl: 'https://astoriavet.example',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Emergency Triage Guidance', 'Endoscopy & Ultrasound', 'Advanced Dental Care', 'Allergy & Dermatology Consults', 'Full In-House Pharmacy'],
+      imageKeys: ['provider-vet-06'],
+      ratingAvg: 4.89,
+      ratingCount: 27,
+      cancellationHours: 24,
+      autoConfirm: true,
+      isDemo: true,
+      services: [
+        { name: 'Wellness & Preventive Exam', description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.', durationMin: 30, basePriceCents: 8500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Core Vaccination & Immunity Visit', description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.', durationMin: 20, basePriceCents: 6500, species: [Species.DOG, Species.CAT], isAddOn: false },
+        { name: 'Comprehensive Sick Pet Consultation', description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.', durationMin: 45, basePriceCents: 11000, species: [Species.DOG, Species.CAT], isAddOn: false },
+      ],
+      reviews: [
+        { userName: 'Rachel G.', rating: 5, title: 'Thorough and compassionate', body: 'The doctor caught an ear infection early and treated it immediately. Compassionate staff.' },
+      ]
+    },
+  ];
+
+  let firstVetProvider: any = null;
+  let firstVetWellnessService: any = null;
+  let firstVetVaccineService: any = null;
+
+  for (const vData of vetProvidersData) {
+    const { services, reviews, ...providerFields } = vData;
+
+    const provider = await prisma.provider.upsert({
+      where: { slug: providerFields.slug },
+      update: {
+        ...providerFields,
+        type: ProviderType.VET_CLINIC,
+      },
+      create: {
+        ...providerFields,
+        type: ProviderType.VET_CLINIC,
+      },
+    });
+
+    if (!firstVetProvider) {
+      firstVetProvider = provider;
+    }
+
+    // Weekly Operating Hours (Mon-Sat 08:30-18:00, stations = 2)
+    for (let weekday = 1; weekday <= 6; weekday++) {
+      await prisma.providerHours.upsert({
+        where: {
+          providerId_weekday_opensAt: {
+            providerId: provider.id,
+            weekday,
+            opensAt: '08:30',
+          },
+        },
+        update: {
+          closesAt: '18:00',
+          stations: 2,
+        },
+        create: {
+          providerId: provider.id,
+          weekday,
+          opensAt: '08:30',
+          closesAt: '18:00',
+          stations: 2,
+        },
+      });
+    }
+
+    // Sunday Hours (10:00-15:00, stations = 1)
+    await prisma.providerHours.upsert({
+      where: {
+        providerId_weekday_opensAt: {
+          providerId: provider.id,
+          weekday: 0,
+          opensAt: '10:00',
+        },
+      },
+      update: {
+        closesAt: '15:00',
+        stations: 1,
+      },
+      create: {
+        providerId: provider.id,
+        weekday: 0,
+        opensAt: '10:00',
+        closesAt: '15:00',
+        stations: 1,
+      },
+    });
+
+    // Services
+    for (const s of services) {
+      const createdService = await prisma.service.upsert({
+        where: {
+          id: `${provider.slug}-${s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        },
+        update: {
+          name: s.name,
+          description: s.description,
+          durationMin: s.durationMin,
+          basePriceCents: s.basePriceCents,
+          species: s.species,
+          isAddOn: s.isAddOn,
+        },
+        create: {
+          id: `${provider.slug}-${s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          providerId: provider.id,
+          kind: BookingKind.VET,
+          name: s.name,
+          description: s.description,
+          durationMin: s.durationMin,
+          basePriceCents: s.basePriceCents,
+          species: s.species,
+          isAddOn: s.isAddOn,
+        },
+      });
+
+      if (provider.slug === 'hudson-river-vet') {
+        if (s.name.includes('Wellness')) firstVetWellnessService = createdService;
+        if (s.name.includes('Vaccination')) firstVetVaccineService = createdService;
+      }
+    }
+
+    // Sample Reviews
+    for (let i = 0; i < reviews.length; i++) {
+      const r = reviews[i];
+      const seedBookingRef = `PN-VET-REV-${provider.slug.slice(0, 8)}-${i}`;
+      let seedBooking = await prisma.booking.findUnique({ where: { reference: seedBookingRef } });
+      if (!seedBooking) {
+        const pastDate = new Date(Date.now() - (20 + i * 10) * 24 * 60 * 60 * 1000);
+        seedBooking = await prisma.booking.create({
+          data: {
+            reference: seedBookingRef,
+            userId: demoUser.id,
+            petId: barnaby.id,
+            providerId: provider.id,
+            kind: BookingKind.VET,
+            status: BookingStatus.COMPLETED,
+            startsAt: pastDate,
+            endsAt: new Date(pastDate.getTime() + 30 * 60 * 1000),
+            priceCents: 8500,
+            currency: 'USD',
+            priceBreakdown: {
+              baseCents: 8500,
+              sizeAdjustmentCents: 0,
+              addOnsCents: 0,
+              totalCents: 8500,
+            },
+            visitType: 'WELLNESS',
+            symptoms: [],
+            reason: 'Routine health checkup',
+            emergencyAcknowledged: true,
+            isDemo: true,
+          },
+        });
+      }
+
+      await prisma.review.upsert({
+        where: { bookingId: seedBooking.id },
+        update: {},
+        create: {
+          userId: demoUser.id,
+          providerId: provider.id,
+          bookingId: seedBooking.id,
+          rating: r.rating,
+          title: r.title,
+          body: r.body,
+          isSample: true,
+        },
+      });
+    }
+  }
+
+  // 9. Seed Past & Upcoming Veterinary Appointments for Maya, Barnaby & Luna
+  if (firstVetProvider && firstVetWellnessService) {
+    const demoPastVetRef = 'PN-VET-SEED01';
+    let pastVet = await prisma.booking.findUnique({ where: { reference: demoPastVetRef } });
+    if (!pastVet) {
+      const pastStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+      pastStart.setUTCHours(14, 0, 0, 0);
+      const pastEnd = new Date(pastStart.getTime() + 30 * 60 * 1000);
+
+      await prisma.booking.create({
+        data: {
+          reference: demoPastVetRef,
+          userId: demoUser.id,
+          petId: barnaby.id,
+          providerId: firstVetProvider.id,
+          serviceId: firstVetWellnessService.id,
+          kind: BookingKind.VET,
+          status: BookingStatus.COMPLETED,
+          startsAt: pastStart,
+          endsAt: pastEnd,
+          priceCents: 8500,
+          currency: 'USD',
+          priceBreakdown: {
+            baseCents: 8500,
+            sizeAdjustmentCents: 0,
+            addOnsCents: 0,
+            totalCents: 8500,
+          },
+          visitType: 'WELLNESS',
+          symptoms: ['Routine annual wellness evaluation'],
+          reason: 'Annual preventive exam, vitals check, and skin check for seasonal dryness.',
+          emergencyAcknowledged: true,
+          isDemo: true,
+        },
+      });
+    }
+
+    if (firstVetVaccineService) {
+      const demoUpcomingVetRef = 'PN-VET-SEED02';
+      const upcomingStart = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+      upcomingStart.setUTCHours(10, 30, 0, 0);
+      const upcomingEnd = new Date(upcomingStart.getTime() + 20 * 60 * 1000);
+
+      const existingUpcomingVet = await prisma.booking.findUnique({
+        where: { reference: demoUpcomingVetRef },
+      });
+
+      if (!existingUpcomingVet) {
+        await prisma.booking.create({
+          data: {
+            reference: demoUpcomingVetRef,
+            userId: demoUser.id,
+            petId: luna.id,
+            providerId: firstVetProvider.id,
+            serviceId: firstVetVaccineService.id,
+            kind: BookingKind.VET,
+            status: BookingStatus.CONFIRMED,
+            startsAt: upcomingStart,
+            endsAt: upcomingEnd,
+            priceCents: 6500,
+            currency: 'USD',
+            priceBreakdown: {
+              baseCents: 6500,
+              sizeAdjustmentCents: 0,
+              addOnsCents: 0,
+              totalCents: 6500,
+            },
+            visitType: 'VACCINATION',
+            symptoms: [],
+            reason: 'Annual vaccine booster and heartworm preventive renewal check.',
+            emergencyAcknowledged: true,
+            isDemo: true,
+          },
+        });
+      }
+    }
+  }
+
   console.log('Seed completed successfully!');
   console.log('Demo Credentials:');
   console.log('  Customer: demo@pawnest.example / P@wnestDemo2026!');

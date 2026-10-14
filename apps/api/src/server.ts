@@ -19,15 +19,33 @@ const app = buildApp({
       : true,
 });
 
+import { initBoss, stopBoss } from './jobs/reminders.js';
+
 async function start() {
   try {
     await app.listen({ port, host });
     console.log(`🐾 PawNest API server listening at http://${host}:${port}`);
     console.log(`📚 API Docs available at http://${host}:${port}/api/docs`);
+
+    await initBoss().catch((err) => {
+      console.warn('pg-boss background worker failed to initialize:', err.message);
+    });
   } catch (err) {
     app.log.error(err);
     process.exit(1);
   }
 }
+
+process.on('SIGTERM', async () => {
+  await stopBoss();
+  await app.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await stopBoss();
+  await app.close();
+  process.exit(0);
+});
 
 start();

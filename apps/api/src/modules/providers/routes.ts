@@ -12,11 +12,23 @@ import {
   ReviewSummary,
   ProviderType,
   Species,
+  STANDARD_VET_VISIT_TYPES,
+  VET_SYMPTOM_OPTIONS,
+  EMERGENCY_DISCLAIMER_TEXT,
 } from '@pawnest/shared';
 
 const boardingAvailabilityService = new BoardingAvailabilityService();
 
 export const providerRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /vet/visit-types (Public)
+  fastify.get('/vet/visit-types', async () => {
+    return {
+      visitTypes: STANDARD_VET_VISIT_TYPES,
+      symptoms: VET_SYMPTOM_OPTIONS,
+      disclaimer: EMERGENCY_DISCLAIMER_TEXT,
+    };
+  });
+
   // GET /providers (Discovery & search)
   fastify.get('/providers', async (request, reply) => {
     const query = ProviderFilterSchema.parse(request.query);

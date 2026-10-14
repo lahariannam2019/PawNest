@@ -3,6 +3,51 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 6: Veterinary Appointments & Medical Records] - 2026-10-14
+### Added
+- **Veterinary Providers & Seed Dataset (`apps/api/prisma/seed`):**
+  - Seeded 5 accredited veterinary clinics across NYC per Appendix B (Hudson River Veterinary Hospital, Brooklyn Heights Animal Medical Centre, Central Park West Veterinary Clinic, Prospect Heights Veterinary Atelier, and Astoria Veterinary Specialists & Wellness).
+  - Seeded primary care services (Wellness & Preventive Exam, Core Vaccinations & Boosters, Sick Pet Consultation, Dental Examination, Post-Treatment Follow-up) and diagnostic add-ons (Fecal/Parasite Screens, Complete Blood Panels, Microchipping).
+  - Seeded clinic operating hours (Mon-Sat 08:30-18:00 with 2 exam stations, Sun 10:00-15:00 with 1 station) and verified patient reviews tagged `isSample=true`.
+  - Pre-seeded realistic demo veterinary records (`PN-VET-SEED01`, `PN-VET-SEED02`) for Barnaby and Luna.
+- **Public Visit Types, Symptoms & Disclaimer Discovery (`apps/api/src/modules/providers`):**
+  - Implemented `GET /api/v1/vet/visit-types` returning standard clinical visit types (`WELLNESS`, `VACCINATION`, `SICK_PET`, `DENTAL`, `FOLLOW_UP`), species-specific triage symptom options for dogs and cats, and the official non-emergency medical disclaimer.
+- **Transactional Veterinary Booking Pipeline (`apps/api/src/modules/bookings`):**
+  - `POST /bookings/quote`: Added authoritative quotes for `kind: 'VET'`, computing consultation base fee and diagnostic add-ons with species verification.
+  - `POST /bookings`: Atomic appointment creation with `PN-VET-` reference prefix, `Idempotency-Key` replay safety, advisory locking on doctor exam stations, pet ownership validation, and storage of `visitType`, `symptoms`, `reason`, and `emergencyAcknowledged`.
+  - Medical Safety Enforcement: Server strictly rejects appointments without explicit `emergencyAcknowledged: true` (422 `VALIDATION_FAILED`), preventing unauthorized emergency use.
+- **Background Appointment Reminders with `pg-boss` (`apps/api/src/jobs/reminders`):**
+  - Integrated `pg-boss` v12 background worker backed by PostgreSQL.
+  - Automatically schedules a reminder job 24 hours prior to appointment `startsAt`.
+  - Exactly-once delivery guarantee: atomic transaction updates `reminderSentAt DateTime?` on the booking and dedupes on the `Notification` table, preventing duplicate alerts or emails under parallel job runs.
+  - Integrated console mail provider sending patient and clinic appointment particulars to the pet owner.
+- **Frontend Veterinary Experience (`apps/web`):**
+  - Veterinary Discovery Page (`/vet`): Prominent persistent emergency triage banner, filters for species, city, and ratings, accredited clinic cards, and clinical standards highlights (fear-free handling, in-house lab, complete medical record sync).
+  - Clinic Detail Page (`/vet/[slug]`): Comprehensive clinic view with persistent emergency medical disclaimer, examination care menu, diagnostic add-on cards, doctor clinic schedule, and patient reviews.
+  - Veterinary Booking Wizard (`/book/vet/[providerSlug]`):
+    1. Patient Selection with medical context pre-fill (allergies, chronic conditions, active medications, recent vaccinations).
+    2. Consultation Type & Preparatory Triage (visit type selector, species-tailored symptom checklist, primary reason textarea, and clear non-diagnostic safety advisory banner).
+    3. Doctor Exam Slot Picker (real-time slot availability from clinic operating hours).
+    4. Review, Mandatory Emergency Care Disclaimer Checkbox, and Instant Confirmation.
+  - Dashboard Integration (`/dashboard/bookings` & `/dashboard/bookings/[id]`):
+    - Distinctive `Veterinary Visit` badge and visit category indicator in appointments list.
+    - Clinical Intake & Triage card on booking detail displaying reported symptoms, consultation notes, and verified non-emergency care acknowledgement badge.
+
+### Verified
+- **API Tests (`vet.test.ts`):** 9/9 automated tests passing:
+  - Visit types and emergency disclaimer verification via `GET /vet/visit-types`.
+  - Authoritative quote calculation for wellness exam and diagnostic add-on.
+  - Rejection with 422 when `emergencyAcknowledged: false`.
+  - Rejection with 404 when attempting to book another user's pet.
+  - Successful appointment creation with `PN-VET-` reference prefix, intake persistence, and station locking.
+  - Idempotency key replay test returning cached booking response.
+  - Cross-user authorization isolation returning 404.
+  - Reminder job exactly-once delivery test: initial run marks `reminderSentAt` and delivers 1 notification; second invocation safely aborts without duplicate notifications.
+- **Complete Monorepo Test Suite:** 81/81 automated tests passing across `apps/api` (65) and `apps/web` (16).
+- **Typecheck & Production Build:** Clean monorepo typecheck (`pnpm -r typecheck`); Next.js production build succeeded with 25 static and dynamic pages.
+
+---
+
 ## [Phase 5: Boarding & Multi-Day Stays] - 2026-10-14
 ### Added
 - **Boarding Providers, Suites & Seed Data (`apps/api/prisma/seed`):**

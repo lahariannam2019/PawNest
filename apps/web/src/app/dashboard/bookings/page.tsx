@@ -163,9 +163,13 @@ export default function DashboardBookingsPage() {
                     {b.reference}
                   </span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    b.kind === 'BOARDING' ? 'bg-sage-100 text-sage-800' : 'bg-ivory-200 text-charcoal-700'
+                    b.kind === 'BOARDING'
+                      ? 'bg-sage-100 text-sage-800'
+                      : b.kind === 'VET'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                      : 'bg-ivory-200 text-charcoal-700'
                   }`}>
-                    {b.kind === 'BOARDING' ? 'Boarding Stay' : 'Grooming'}
+                    {b.kind === 'BOARDING' ? 'Boarding Stay' : b.kind === 'VET' ? 'Veterinary Visit' : 'Grooming'}
                   </span>
                   {renderStatusBadge(b.status)}
                   {b.isDemo && (
@@ -178,8 +182,23 @@ export default function DashboardBookingsPage() {
                 <h3 className="font-serif text-lg font-bold text-charcoal-900">
                   {b.kind === 'BOARDING'
                     ? `${b.boardingUnitName || 'Boarding Suite'} for ${b.petName}`
+                    : b.kind === 'VET'
+                    ? `${b.serviceName || b.visitType || 'Veterinary Consultation'} for ${b.petName}`
                     : `${b.serviceName || 'Grooming Treatment'} for ${b.petName}`}
                 </h3>
+
+                {b.kind === 'VET' && b.visitType && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-sage-50 text-sage-700 font-semibold border border-sage-200">
+                      {b.visitType}
+                    </span>
+                    {b.symptoms && b.symptoms.length > 0 && (
+                      <span className="text-[10px] text-amber-800">
+                        {b.symptoms.length} symptom flag{b.symptoms.length > 1 ? 's' : ''} reported
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-3 text-xs text-charcoal-600">
                   <span className="font-semibold text-charcoal-800">{b.providerName}</span>

@@ -205,6 +205,8 @@ export default function BookingDetailPage() {
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal-900">
               {booking.kind === 'BOARDING'
                 ? `${booking.boardingUnitName || 'Boarding Suite'} for ${booking.petName}`
+                : booking.kind === 'VET'
+                ? `${booking.serviceName || booking.visitType || 'Veterinary Consultation'} for ${booking.petName}`
                 : `${booking.serviceName || 'Grooming Treatment'} for ${booking.petName}`}
             </h1>
           </div>
@@ -276,6 +278,55 @@ export default function BookingDetailPage() {
           </div>
         )}
 
+        {/* Veterinary Medical Details Card (if kind === VET) */}
+        {booking.kind === 'VET' && (
+          <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+              <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-amber-700" /> Veterinary Clinical Intake & Triage
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900">
+                  {booking.visitType || 'WELLNESS'}
+                </span>
+                {booking.emergencyAcknowledged && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800 border border-sage-200">
+                    Non-Emergency Care Confirmed
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[11px] font-semibold text-amber-900 uppercase tracking-wider block mb-1">
+                  Reported Symptoms & Observations
+                </span>
+                {booking.symptoms && booking.symptoms.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {booking.symptoms.map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded bg-white border border-amber-200 text-amber-950 font-medium">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-amber-900/80">No acute symptoms reported (routine preventive visit).</p>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[11px] font-semibold text-amber-900 uppercase tracking-wider block mb-1">
+                  Owner Consultation Notes
+                </span>
+                <p className="text-amber-950 italic bg-white/80 p-2.5 rounded-xl border border-amber-200/80">
+                  &ldquo;{booking.reason || 'General wellness examination'}&rdquo;
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 2-Column Particulars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column: Date, Time & Provider */}
@@ -308,7 +359,11 @@ export default function BookingDetailPage() {
 
             <div>
               <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
-                {booking.kind === 'BOARDING' ? 'Retreat Location & Contact' : 'Atelier Location & Contact'}
+                {booking.kind === 'BOARDING'
+                  ? 'Retreat Location & Contact'
+                  : booking.kind === 'VET'
+                  ? 'Clinic Location & Contact'
+                  : 'Atelier Location & Contact'}
               </span>
               <h3 className="font-serif font-bold text-base text-charcoal-900">
                 {booking.providerName}

@@ -349,6 +349,7 @@ export const CreateBookingSchema = z.object({
   visitType: z.string().optional().nullable(),
   symptoms: z.array(z.string()).default([]),
   reason: z.string().optional().nullable(),
+  emergencyAcknowledged: z.boolean().optional(),
   careInstructions: z
     .object({
       feeding: z.string().optional(),
@@ -611,6 +612,10 @@ export interface BookingSummary {
   priceBreakdown: BookingPriceBreakdown;
   addOnIds: string[];
   notes?: string | null;
+  visitType?: string | null;
+  symptoms?: string[];
+  reason?: string | null;
+  emergencyAcknowledged?: boolean;
   careInstructions?: CareInstructions | null;
   isDemo: boolean;
   cancellationHours: number;
@@ -618,5 +623,98 @@ export interface BookingSummary {
   cancelReason?: string | null;
   createdAt: string;
 }
+
+export interface VetVisitTypeSummary {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  durationMin: number;
+  basePriceCents: number;
+  species: Species[];
+}
+
+export const EMERGENCY_DISCLAIMER_TEXT =
+  'For emergencies (severe trauma, difficulty breathing, collapsed/unconscious, poisoning, acute bloat), contact your nearest emergency veterinary hospital immediately. PawNest visits are for scheduled, non-emergency care.';
+
+export const STANDARD_VET_VISIT_TYPES: VetVisitTypeSummary[] = [
+  {
+    id: 'vt-wellness',
+    code: 'WELLNESS',
+    name: 'Wellness & Preventive Exam',
+    description: 'Comprehensive physical examination, vitals, dental check, coat health, and nutrition consultation.',
+    durationMin: 30,
+    basePriceCents: 8500,
+    species: [Species.DOG, Species.CAT],
+  },
+  {
+    id: 'vt-vaccination',
+    code: 'VACCINATION',
+    name: 'Vaccination & Immunity Assessment',
+    description: 'Administration of core rabies and lifestyle booster vaccines with a pre-vaccine health screen.',
+    durationMin: 20,
+    basePriceCents: 6500,
+    species: [Species.DOG, Species.CAT],
+  },
+  {
+    id: 'vt-sick',
+    code: 'SICK_VISIT',
+    name: 'Comprehensive Sick Pet Consultation',
+    description: 'Detailed evaluation of acute symptoms: digestive upset, lethargy, skin lesions, respiratory, or mobility changes.',
+    durationMin: 45,
+    basePriceCents: 11000,
+    species: [Species.DOG, Species.CAT],
+  },
+  {
+    id: 'vt-dental',
+    code: 'DENTAL',
+    name: 'Comprehensive Dental Examination',
+    description: 'Oral cavity staging, gingivitis assessment, calculus evaluation, and dental prophylaxis recommendations.',
+    durationMin: 30,
+    basePriceCents: 9500,
+    species: [Species.DOG, Species.CAT],
+  },
+  {
+    id: 'vt-followup',
+    code: 'FOLLOW_UP',
+    name: 'Post-Treatment Follow-up & Progress Check',
+    description: 'Re-evaluation of ongoing treatment response, wound check, suture removal, or medication adjustments.',
+    durationMin: 20,
+    basePriceCents: 4500,
+    species: [Species.DOG, Species.CAT],
+  },
+];
+
+export const VET_SYMPTOM_OPTIONS: Record<Species, string[]> = {
+  [Species.DOG]: [
+    'Lethargy / low energy',
+    'Vomiting or nausea',
+    'Decreased appetite / weight loss',
+    'Coughing, wheezing, or nasal discharge',
+    'Limping or stiffness walking',
+    'Skin itching, scratching, or redness',
+    'Ear scratching, shaking, or odor',
+    'Eye redness, squinting, or discharge',
+    'Diarrhea or loose stool',
+    'Urinary straining or frequency',
+  ],
+  [Species.CAT]: [
+    'Lethargy or hiding away',
+    'Appetite loss or refusal to eat',
+    'Frequent vomiting or hairballs',
+    'Urinary straining, frequent litter box visits, or accidents',
+    'Sneezing, nasal discharge, or noisy breathing',
+    'Excessive grooming, bald patches, or scabs',
+    'Weight loss or unkempt coat',
+    'Limping or reluctance to jump',
+    'Unusual vocalisation or aggression',
+  ],
+  [Species.OTHER]: [
+    'Lethargy / low energy',
+    'Loss of appetite',
+    'Breathing changes',
+    'Digestive changes',
+  ],
+};
 
 

@@ -63,3 +63,21 @@ This document records technical and design decisions made during the implementat
   3. Acquired `pg_advisory_xact_lock` on the unit ID inside transactional booking creation, verified with a 25-request concurrent test where exactly 1 booking succeeds and 24 return `409 Conflict` (`SLOT_TAKEN`).
 - **Reason:** Enforces pet safety on the backend, prevents race conditions across multi-night stays, and preserves data integrity without mock state.
 
+---
+
+### [2026-10-14] Decision 007: Veterinary Appointments, Clinical Intake Triage, Emergency Disclaimer & pg-boss Exactly-Once Reminders
+- **Context:** Section 9.4, Section 15, and Phase 6 require veterinary services, symptom intake, emergency disclaimer acknowledgement, and background reminder delivery:
+  1. Veterinary clinics and services: 5 accredited NY veterinary clinics (Hudson River Vet, Brooklyn Heights Animal Medical, Central Park West Vet, Prospect Heights Vet, Astoria Vet Specialists) offering preventive wellness exams, core vaccinations, sick pet consultations, dental exams, follow-ups, and in-house diagnostics (fecal screens, blood panels, microchipping).
+  2. Public visit types and symptom discovery: `GET /vet/visit-types` returning standard visit types, species-specific symptoms, and the official non-emergency medical disclaimer.
+  3. Medical safety & emergency triage enforcement: PawNest is for scheduled non-emergency care. An emergency notice banner is persistently rendered on all veterinary pages (`/vet`, `/vet/[slug]`, `/book/vet/[slug]`, and `/dashboard/bookings/[id]`). During booking, `emergencyAcknowledged: true` is strictly validated on the backend; requests with `false` or omitted acknowledgement are rejected with `422 Unprocessable Entity`.
+  4. Clinical intake prefill: the booking wizard pre-fills the patient's existing allergies, chronic conditions, medications, and vaccination records into the consultation context. The symptom intake checklist is explicitly styled as preparatory triage, never claiming to be a diagnostic tool.
+  5. Background reminder job (`pg-boss`): A durable PostgreSQL background job is scheduled 24 hours prior to appointment `startsAt`. Exactly-once delivery is guaranteed via a database transaction guard (`reminderSentAt DateTime?` on `Booking`), in-app deduplication on `Notification`, and `pg-boss` unique singleton keys.
+- **Decision:**
+  1. Updated Prisma schema with `emergencyAcknowledged`, `reminderSentAt`, and `reminderJobId` on `Booking`.
+  2. Implemented `reminders.ts` integrating `pg-boss` v12 with atomic idempotency guards and console mailer integration.
+  3. Integrated `initBoss()` and graceful shutdown hooks (`stopBoss()`) into Fastify lifecycle.
+  4. Enforced reference prefix `PN-VET-` for veterinary appointments.
+  5. Built full frontend veterinary discovery, clinic detail, booking wizard with medical history pre-fill and non-diagnostic checklist, and dashboard booking timeline.
+- **Reason:** Guarantees patient safety, prevents misleading online diagnostics, fulfills exact regulatory disclaimers, and ensures durable, zero-duplicate reminder delivery across appointments.
+
+

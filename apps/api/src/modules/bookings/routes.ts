@@ -21,6 +21,7 @@ import {
   validateBoardingVaccines,
 } from '@pawnest/shared';
 import { formatDateInTimezone, getStayNightDates } from '../availability/boarding-availability.service.js';
+import { scheduleAppointmentReminder } from '../../jobs/reminders.js';
 import crypto from 'node:crypto';
 
 export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
@@ -136,7 +137,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     // GROOMING / VET QUOTE
     // -----------------------------------------------------------------
     if (!serviceId) {
-      throw new ValidationError('Service ID is required for grooming quotes');
+      throw new ValidationError(kind === BookingKind.VET ? 'Service ID / visit type is required for veterinary quotes' : 'Service ID is required for grooming quotes');
     }
 
     const service = await prisma.service.findFirst({
@@ -409,12 +410,15 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
           id: booking.id,
           reference: booking.reference,
           status: booking.status,
+          kind: booking.kind,
           startsAt: booking.startsAt.toISOString(),
           endsAt: booking.endsAt.toISOString(),
           priceCents: booking.priceCents,
           currency: booking.currency,
           priceBreakdown: booking.priceBreakdown,
+          petId: booking.pet.id,
           petName: booking.pet.name,
+          providerId: booking.provider.id,
           providerName: booking.provider.name,
           boardingUnitName: booking.unit?.name ?? null,
           careInstructions: booking.careInstructions,
@@ -475,6 +479,20 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       // 4. Verify Species
       if (!service.species.includes(pet.species)) {
         throw new ValidationError(`Service does not accept species: ${pet.species}`);
+      }
+
+      if (body.kind === BookingKind.VET) {
+        if (!body.emergencyAcknowledged) {
+          throw new ValidationError(
+            'You must acknowledge the emergency care disclaimer before scheduling a veterinary appointment'
+          );
+        }
+        if (!body.visitType) {
+          throw new ValidationError('visitType is required for veterinary appointments');
+        }
+        if (!body.reason || !body.reason.trim()) {
+          throw new ValidationError('Primary reason or symptom description is required for veterinary appointments');
+        }
       }
 
       // 5. Capacity Check for the Slot
@@ -539,7 +557,8 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
 
       const totalCents = baseCents + sizeAdjustmentCents + addOnsCents;
       const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
-      const reference = `PN-GRM-${randomSuffix}`;
+      const prefix = body.kind === BookingKind.VET ? 'PN-VET' : 'PN-GRM';
+      const reference = `${prefix}-${randomSuffix}`;
 
       // 7. Create Booking
       const booking = await tx.booking.create({
@@ -564,6 +583,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
           },
           addOnIds: addOnIds || [],
           notes,
+          visitType: body.visitType || null,
+          symptoms: body.symptoms || [],
+          reason: body.reason || null,
+          emergencyAcknowledged: Boolean(body.emergencyAcknowledged),
           isDemo: provider.isDemo,
           idempotencyKey,
         },
@@ -579,14 +602,22 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
         id: booking.id,
         reference: booking.reference,
         status: booking.status,
+        kind: booking.kind,
         startsAt: booking.startsAt.toISOString(),
         endsAt: booking.endsAt.toISOString(),
         priceCents: booking.priceCents,
         currency: booking.currency,
         priceBreakdown: booking.priceBreakdown,
+        petId: booking.pet.id,
         petName: booking.pet.name,
+        providerId: booking.provider.id,
         providerName: booking.provider.name,
+        serviceId: booking.serviceId,
         serviceName: booking.service?.name,
+        visitType: booking.visitType,
+        symptoms: booking.symptoms,
+        reason: booking.reason,
+        emergencyAcknowledged: booking.emergencyAcknowledged,
         isDemo: booking.isDemo,
       };
 
@@ -601,6 +632,14 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return responsePayload;
+    });
+
+    // 9. Schedule reminder
+    await scheduleAppointmentReminder({
+      id: createdBooking.id,
+      startsAt: createdBooking.startsAt,
+    }).catch((err) => {
+      request.log.warn({ err }, 'Failed to schedule appointment reminder');
     });
 
     return reply.status(201).send(createdBooking);
@@ -657,6 +696,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       priceBreakdown: b.priceBreakdown as any,
       addOnIds: b.addOnIds,
       notes: b.notes,
+      visitType: b.visitType,
+      symptoms: b.symptoms,
+      reason: b.reason,
+      emergencyAcknowledged: b.emergencyAcknowledged,
       careInstructions: b.careInstructions as any,
       isDemo: b.isDemo,
       cancellationHours: b.provider.cancellationHours,
@@ -707,6 +750,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       priceBreakdown: booking.priceBreakdown,
       addOnIds: booking.addOnIds,
       notes: booking.notes,
+      visitType: booking.visitType,
+      symptoms: booking.symptoms,
+      reason: booking.reason,
+      emergencyAcknowledged: booking.emergencyAcknowledged,
       careInstructions: booking.careInstructions,
       isDemo: booking.isDemo,
       cancellationHours: booking.provider.cancellationHours,
