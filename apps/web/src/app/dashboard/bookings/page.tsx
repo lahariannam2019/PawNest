@@ -162,6 +162,11 @@ export default function DashboardBookingsPage() {
                   <span className="text-xs font-bold font-mono text-charcoal-500">
                     {b.reference}
                   </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    b.kind === 'BOARDING' ? 'bg-sage-100 text-sage-800' : 'bg-ivory-200 text-charcoal-700'
+                  }`}>
+                    {b.kind === 'BOARDING' ? 'Boarding Stay' : 'Grooming'}
+                  </span>
                   {renderStatusBadge(b.status)}
                   {b.isDemo && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-peach-50 text-peach-700 border border-peach-200">
@@ -171,25 +176,45 @@ export default function DashboardBookingsPage() {
                 </div>
 
                 <h3 className="font-serif text-lg font-bold text-charcoal-900">
-                  {b.serviceName || 'Grooming Treatment'} for {b.petName}
+                  {b.kind === 'BOARDING'
+                    ? `${b.boardingUnitName || 'Boarding Suite'} for ${b.petName}`
+                    : `${b.serviceName || 'Grooming Treatment'} for ${b.petName}`}
                 </h3>
 
                 <div className="flex flex-wrap items-center gap-3 text-xs text-charcoal-600">
                   <span className="font-semibold text-charcoal-800">{b.providerName}</span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-sage-600" />
-                    {new Date(b.startsAt).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}{' '}
-                    at{' '}
-                    {new Date(b.startsAt).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                      timeZone: 'UTC',
-                    })}
+                    {b.kind === 'BOARDING' ? (
+                      <span>
+                        {b.priceBreakdown.nights ? `${b.priceBreakdown.nights} nights: ` : ''}
+                        {new Date(b.startsAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}{' '}
+                        –{' '}
+                        {new Date(b.endsAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    ) : (
+                      <span>
+                        {new Date(b.startsAt).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        })}{' '}
+                        at{' '}
+                        {new Date(b.startsAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true,
+                          timeZone: 'UTC',
+                        })}
+                      </span>
+                    )}
                   </span>
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-charcoal-400" />

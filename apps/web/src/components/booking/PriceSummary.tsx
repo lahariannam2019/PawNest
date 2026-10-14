@@ -37,10 +37,10 @@ export function PriceSummary({ quote, petName, serviceName }: PriceSummaryProps)
         </div>
       )}
 
-      {priceBreakdown.sizeAdjustmentCents > 0 && (
+      {Boolean(priceBreakdown.sizeAdjustmentCents && priceBreakdown.sizeAdjustmentCents > 0) && (
         <div className="flex items-center justify-between text-xs text-charcoal-600">
           <span>Pet Size Tier Adjustment</span>
-          <span>+{fmt(priceBreakdown.sizeAdjustmentCents)}</span>
+          <span>+{fmt(priceBreakdown.sizeAdjustmentCents || 0)}</span>
         </div>
       )}
 

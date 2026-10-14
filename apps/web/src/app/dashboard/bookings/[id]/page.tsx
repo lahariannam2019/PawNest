@@ -203,7 +203,9 @@ export default function BookingDetailPage() {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal-900">
-              {booking.serviceName || 'Grooming Treatment'} for {booking.petName}
+              {booking.kind === 'BOARDING'
+                ? `${booking.boardingUnitName || 'Boarding Suite'} for ${booking.petName}`
+                : `${booking.serviceName || 'Grooming Treatment'} for ${booking.petName}`}
             </h1>
           </div>
 
@@ -222,43 +224,91 @@ export default function BookingDetailPage() {
                 size="sm"
                 onClick={() => setShowCancelModal(true)}
               >
-                Cancel Appointment
+                Cancel {booking.kind === 'BOARDING' ? 'Reservation' : 'Appointment'}
               </Button>
             </div>
           )}
         </div>
 
+        {/* Boarding Stay Timeline (if kind === BOARDING) */}
+        {booking.kind === 'BOARDING' && (
+          <div className="p-5 rounded-2xl bg-sage-50 border border-sage-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-sage-900 uppercase tracking-wider">
+                Stay Timeline & Suite Details
+              </span>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-sage-200/80 text-sage-800">
+                {booking.priceBreakdown.nights || 1} Night Stay
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-white border border-sage-200">
+                <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
+                  Check-In
+                </span>
+                <p className="font-serif font-bold text-base text-charcoal-900">
+                  {new Date(booking.startsAt).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+                <p className="text-xs text-charcoal-600 mt-0.5">From 2:00 PM onwards</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-sage-200">
+                <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
+                  Check-Out
+                </span>
+                <p className="font-serif font-bold text-base text-charcoal-900">
+                  {new Date(booking.endsAt).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+                <p className="text-xs text-charcoal-600 mt-0.5">By 11:00 AM</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 2-Column Particulars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Column: Date, Time & Provider */}
           <div className="space-y-5">
-            <div>
-              <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
-                Appointment Date & Time
-              </span>
-              <div className="flex items-center gap-2 text-sm font-bold text-charcoal-900">
-                <Clock className="w-4 h-4 text-sage-600" />
-                <span>
-                  {new Date(booking.startsAt).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}{' '}
-                  at{' '}
-                  {new Date(booking.startsAt).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                    timeZone: 'UTC',
-                  })}
+            {booking.kind !== 'BOARDING' && (
+              <div>
+                <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
+                  Appointment Date & Time
                 </span>
+                <div className="flex items-center gap-2 text-sm font-bold text-charcoal-900">
+                  <Clock className="w-4 h-4 text-sage-600" />
+                  <span>
+                    {new Date(booking.startsAt).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}{' '}
+                    at{' '}
+                    {new Date(booking.startsAt).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                      timeZone: 'UTC',
+                    })}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <span className="text-[11px] font-semibold text-charcoal-500 uppercase tracking-wider block mb-1">
-                Atelier Location & Contact
+                {booking.kind === 'BOARDING' ? 'Retreat Location & Contact' : 'Atelier Location & Contact'}
               </span>
               <h3 className="font-serif font-bold text-base text-charcoal-900">
                 {booking.providerName}
@@ -288,6 +338,35 @@ export default function BookingDetailPage() {
                 </p>
               )}
             </div>
+
+            {/* Boarding Care Instructions */}
+            {booking.kind === 'BOARDING' && booking.careInstructions && (
+              <div className="p-4 rounded-xl bg-ivory-100/70 border border-ivory-200 space-y-2 text-xs">
+                <span className="text-[11px] font-semibold text-charcoal-700 uppercase tracking-wider block">
+                  Care Routine Instructions
+                </span>
+                {booking.careInstructions.feeding && (
+                  <p className="text-charcoal-700">
+                    <strong className="text-charcoal-900">Feeding:</strong> {booking.careInstructions.feeding}
+                  </p>
+                )}
+                {booking.careInstructions.medications && (
+                  <p className="text-charcoal-700">
+                    <strong className="text-charcoal-900">Medications:</strong> {booking.careInstructions.medications}
+                  </p>
+                )}
+                {booking.careInstructions.behaviour && (
+                  <p className="text-charcoal-700">
+                    <strong className="text-charcoal-900">Behaviour:</strong> {booking.careInstructions.behaviour}
+                  </p>
+                )}
+                {booking.careInstructions.emergencyContact && (
+                  <p className="text-charcoal-700">
+                    <strong className="text-charcoal-900">Emergency Contact:</strong> {booking.careInstructions.emergencyContact}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Price Breakdown & Policy */}
@@ -298,16 +377,22 @@ export default function BookingDetailPage() {
 
             <div className="space-y-2 text-xs">
               <div className="flex justify-between text-charcoal-600">
-                <span>Base Service</span>
+                <span>
+                  {booking.kind === 'BOARDING'
+                    ? `Suite (${booking.priceBreakdown.nights || 1} nights @ $${(
+                        (booking.priceBreakdown.nightlyCents || booking.priceBreakdown.baseCents) / 100
+                      ).toFixed(2)}/nt)`
+                    : 'Base Service'}
+                </span>
                 <span>${(booking.priceBreakdown.baseCents / 100).toFixed(2)}</span>
               </div>
 
-              {booking.priceBreakdown.sizeAdjustmentCents > 0 && (
+              {booking.priceBreakdown.sizeAdjustmentCents && booking.priceBreakdown.sizeAdjustmentCents > 0 ? (
                 <div className="flex justify-between text-charcoal-600">
                   <span>Size Tier Surcharge</span>
                   <span>+${(booking.priceBreakdown.sizeAdjustmentCents / 100).toFixed(2)}</span>
                 </div>
-              )}
+              ) : null}
 
               {booking.priceBreakdown.addOns && booking.priceBreakdown.addOns.length > 0 && (
                 <div className="space-y-1 pt-1 border-t border-ivory-200">
@@ -331,7 +416,7 @@ export default function BookingDetailPage() {
             <div className="pt-3 border-t border-ivory-200 text-xs text-charcoal-600 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-sage-600 shrink-0 mt-0.5" />
               <p>
-                <strong>Cancellation Policy:</strong> Free cancellation up to {booking.cancellationHours} hours before the appointment.
+                <strong>Cancellation Policy:</strong> Free cancellation up to {booking.cancellationHours} hours before check-in.
               </p>
             </div>
           </div>
@@ -408,40 +493,79 @@ export default function BookingDetailPage() {
               </button>
             </div>
 
-            <p className="text-xs text-charcoal-600">
-              Select a new date and available slot for {booking.serviceName} at {booking.providerName}.
-            </p>
+            {booking.kind === 'BOARDING' ? (
+              <div className="space-y-4">
+                <p className="text-xs text-charcoal-700">
+                  Because multi-day boarding reservations involve suite allocation and continuous night availability, date modifications must be handled with our concierge team or by cancelling within your free cancellation window and selecting new stay dates.
+                </p>
 
-            <SlotPicker
-              providerSlug={booking.providerSlug}
-              serviceId={booking.serviceId || undefined}
-              petId={booking.petId}
-              selectedSlot={newSlot || undefined}
-              onSelectSlot={(slot) => setNewSlot(slot)}
-            />
+                <div className="p-4 rounded-2xl bg-ivory-100 border border-ivory-200 space-y-2 text-xs">
+                  <p className="font-semibold text-charcoal-900">
+                    Concierge & Facility Contact:
+                  </p>
+                  <p className="text-charcoal-700">
+                    <strong>{booking.providerName}</strong>
+                  </p>
+                  <p className="text-charcoal-600">
+                    {booking.providerPhone ? `Phone: ${booking.providerPhone}` : 'Concierge line: 1-800-PAW-NEST'}
+                  </p>
+                  <p className="text-charcoal-600">
+                    Address: {booking.providerAddress}
+                  </p>
+                </div>
 
-            {rescheduleError && (
-              <div className="p-3 rounded-xl bg-peach-50 border border-peach-200 text-xs text-peach-900">
-                {rescheduleError}
+                <div className="pt-4 border-t border-ivory-200 flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowRescheduleModal(false)}
+                  >
+                    Close
+                  </Button>
+                  <Link href={`/boarding/${booking.providerSlug}`}>
+                    <Button variant="primary">
+                      View Retreat Details
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            )}
+            ) : (
+              <>
+                <p className="text-xs text-charcoal-600">
+                  Select a new date and available slot for {booking.serviceName} at {booking.providerName}.
+                </p>
 
-            <div className="pt-4 border-t border-ivory-200 flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                disabled={rescheduling}
-                onClick={() => setShowRescheduleModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                disabled={!newSlot || rescheduling}
-                onClick={handleRescheduleBooking}
-              >
-                {rescheduling ? 'Moving Appointment...' : 'Confirm New Time'}
-              </Button>
-            </div>
+                <SlotPicker
+                  providerSlug={booking.providerSlug}
+                  serviceId={booking.serviceId || undefined}
+                  petId={booking.petId}
+                  selectedSlot={newSlot || undefined}
+                  onSelectSlot={(slot) => setNewSlot(slot)}
+                />
+
+                {rescheduleError && (
+                  <div className="p-3 rounded-xl bg-peach-50 border border-peach-200 text-xs text-peach-900">
+                    {rescheduleError}
+                  </div>
+                )}
+
+                <div className="pt-4 border-t border-ivory-200 flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    disabled={rescheduling}
+                    onClick={() => setShowRescheduleModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={!newSlot || rescheduling}
+                    onClick={handleRescheduleBooking}
+                  >
+                    {rescheduling ? 'Moving Appointment...' : 'Confirm New Time'}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

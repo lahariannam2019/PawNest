@@ -6,6 +6,7 @@ import {
   ValidationError,
   ConflictError,
   UnauthorizedError,
+  VaccinesRequiredError,
 } from '../../lib/errors.js';
 import {
   QuoteBookingSchema,
@@ -13,44 +14,131 @@ import {
   CancelBookingSchema,
   RescheduleBookingSchema,
   BookingStatus,
+  BookingKind,
   BookingSummary,
   ErrorCode,
   Species,
+  validateBoardingVaccines,
 } from '@pawnest/shared';
+import { formatDateInTimezone, getStayNightDates } from '../availability/boarding-availability.service.js';
 import crypto from 'node:crypto';
 
 export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
   // All booking routes require authentication
   fastify.addHook('preHandler', fastify.authenticate);
 
-  // POST /bookings/quote (Server-side price & cancellation policy preview)
+  // POST /bookings/quote (Server-side price, policy, & vaccine validation preview)
   fastify.post('/bookings/quote', async (request, reply) => {
     const userId = request.user!.userId;
 
     const body = QuoteBookingSchema.parse(request.body);
-    const { petId, providerId, serviceId, addOnIds } = body;
+    const { petId, providerId, kind, serviceId, boardingUnitId, startsAt, endsAt, addOnIds } = body;
 
-    // Validate pet ownership
+    const startsAtDate = new Date(startsAt);
+    const endsAtDate = new Date(endsAt);
+
+    if (startsAtDate >= endsAtDate) {
+      throw new ValidationError('End time must be after start time');
+    }
+
+    // 1. Validate pet ownership and include vaccinations
     const pet = await prisma.pet.findFirst({
       where: { id: petId, userId, deletedAt: null },
+      include: { vaccinations: true },
     });
     if (!pet) {
       throw new NotFoundError('Pet not found');
     }
 
-    // Validate provider
+    // 2. Validate provider
     const provider = await prisma.provider.findFirst({
       where: { id: providerId, isActive: true },
+      include: { units: true },
     });
     if (!provider) {
-      throw new NotFoundError('Provider not found');
+      throw new NotFoundError('Provider not found or inactive');
     }
 
+    if (!provider.speciesAccepted.includes(pet.species)) {
+      throw new ValidationError(`Provider does not accept species: ${pet.species}`);
+    }
+
+    const timeZone = provider.timezone || 'America/New_York';
+
+    // -----------------------------------------------------------------
+    // BOARDING QUOTE
+    // -----------------------------------------------------------------
+    if (kind === BookingKind.BOARDING) {
+      if (!boardingUnitId) {
+        throw new ValidationError('boardingUnitId is required for boarding quotes');
+      }
+
+      const unit = provider.units.find((u) => u.id === boardingUnitId);
+      if (!unit) {
+        throw new NotFoundError('Boarding unit not found for this provider');
+      }
+
+      const checkInStr = formatDateInTimezone(startsAtDate, timeZone);
+      const checkOutStr = formatDateInTimezone(endsAtDate, timeZone);
+      const nights = getStayNightDates(checkInStr, checkOutStr);
+
+      if (nights.length === 0) {
+        throw new ValidationError('Stay must be at least 1 night');
+      }
+
+      const baseCents = nights.length * unit.nightlyCents;
+
+      // Add-ons
+      let addOnsCents = 0;
+      const addOnsList: Array<{ id: string; name: string; priceCents: number }> = [];
+
+      if (addOnIds && addOnIds.length > 0) {
+        const addOnServices = await prisma.service.findMany({
+          where: {
+            id: { in: addOnIds },
+            providerId,
+            isAddOn: true,
+            isActive: true,
+          },
+        });
+
+        for (const addon of addOnServices) {
+          addOnsCents += addon.basePriceCents;
+          addOnsList.push({
+            id: addon.id,
+            name: addon.name,
+            priceCents: addon.basePriceCents,
+          });
+        }
+      }
+
+      const totalCents = baseCents + addOnsCents;
+      const vaccineCheck = validateBoardingVaccines(pet.species, pet.vaccinations, endsAtDate);
+
+      return {
+        priceCents: totalCents,
+        currency: unit.currency,
+        priceBreakdown: {
+          nights: nights.length,
+          nightlyCents: unit.nightlyCents,
+          baseCents,
+          addOnsCents,
+          totalCents,
+          addOns: addOnsList,
+        },
+        vaccineCheck,
+        cancellationHours: provider.cancellationHours,
+        autoConfirm: provider.autoConfirm,
+      };
+    }
+
+    // -----------------------------------------------------------------
+    // GROOMING / VET QUOTE
+    // -----------------------------------------------------------------
     if (!serviceId) {
       throw new ValidationError('Service ID is required for grooming quotes');
     }
 
-    // Validate service
     const service = await prisma.service.findFirst({
       where: { id: serviceId, providerId, isActive: true },
     });
@@ -58,12 +146,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       throw new NotFoundError('Service not found for this provider');
     }
 
-    // Check species match
     if (!service.species.includes(pet.species)) {
       throw new ValidationError(`This service is not available for species: ${pet.species}`);
     }
 
-    // Price calculation
     const baseCents = service.basePriceCents;
     let sizeAdjustmentCents = 0;
     if (pet.sizeTier && service.sizePricing && typeof service.sizePricing === 'object') {
@@ -121,7 +207,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const body = CreateBookingSchema.parse(request.body);
-    const { petId, providerId, serviceId, startsAt, endsAt, addOnIds, notes } = body;
+    const { petId, providerId, kind, serviceId, boardingUnitId, startsAt, endsAt, addOnIds, notes, careInstructions } = body;
 
     const startsAtDate = new Date(startsAt);
     const endsAtDate = new Date(endsAt);
@@ -146,10 +232,215 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
         .send(existingIdempotency.responseBody);
     }
 
-    // Interactive Transaction with Advisory Lock for concurrency protection
+    // -----------------------------------------------------------------
+    // BOARDING BOOKING TRANSACTION
+    // -----------------------------------------------------------------
+    if (kind === BookingKind.BOARDING) {
+      if (!boardingUnitId) {
+        throw new ValidationError('Boarding unit ID is required for boarding booking');
+      }
+
+      const createdBooking = await prisma.$transaction(async (tx) => {
+        // Advisory transaction lock on the boarding unit
+        const lockKey = `boarding_unit:${boardingUnitId}`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+
+        // 1. Verify Pet ownership and vaccinations
+        const pet = await tx.pet.findFirst({
+          where: { id: petId, userId, deletedAt: null },
+          include: { vaccinations: true },
+        });
+        if (!pet) {
+          throw new NotFoundError('Pet not found');
+        }
+
+        // 2. Verify Provider
+        const provider = await tx.provider.findFirst({
+          where: { id: providerId, isActive: true },
+          include: { units: true },
+        });
+        if (!provider) {
+          throw new NotFoundError('Provider not found or inactive');
+        }
+
+        if (!provider.speciesAccepted.includes(pet.species)) {
+          throw new ValidationError(`Provider does not accept species: ${pet.species}`);
+        }
+
+        const timeZone = provider.timezone || 'America/New_York';
+
+        // 3. Verify Boarding Unit
+        const unit = provider.units.find((u) => u.id === boardingUnitId);
+        if (!unit) {
+          throw new NotFoundError('Boarding unit not found for this provider');
+        }
+
+        // 4. Server-side Vaccination Enforcement through check-out
+        const vaccineCheck = validateBoardingVaccines(pet.species, pet.vaccinations, endsAtDate);
+        if (!vaccineCheck.valid) {
+          const messages: string[] = [];
+          for (const mv of vaccineCheck.missingVaccines) {
+            messages.push(`${mv} vaccination is required for boarding`);
+          }
+          for (const ev of vaccineCheck.expiringVaccines) {
+            messages.push(`${ev.name} vaccination expires on ${ev.expiresOn}, which is before check-out date`);
+          }
+          throw new VaccinesRequiredError(
+            `Boarding vaccination policy requirement not met: ${messages.join('; ')}`,
+            messages.map((m) => ({ field: 'vaccinations', message: m }))
+          );
+        }
+
+        // 5. Date boundaries & lead time check
+        const checkInDateStr = formatDateInTimezone(startsAtDate, timeZone);
+        const checkOutDateStr = formatDateInTimezone(endsAtDate, timeZone);
+        const todayInTz = formatDateInTimezone(new Date(), timeZone);
+
+        if (checkInDateStr <= todayInTz) {
+          throw new ValidationError('Boarding check-in must be booked at least one day in advance');
+        }
+
+        const nights = getStayNightDates(checkInDateStr, checkOutDateStr);
+        if (nights.length === 0) {
+          throw new ValidationError('Stay must be at least 1 night');
+        }
+
+        // 6. Overlapping pet booking check (Section 17: pet cannot hold two overlapping active bookings)
+        const petConflict = await tx.booking.findFirst({
+          where: {
+            petId: pet.id,
+            status: { not: BookingStatus.CANCELLED },
+            startsAt: { lt: endsAtDate },
+            endsAt: { gt: startsAtDate },
+          },
+        });
+        if (petConflict) {
+          throw new ConflictError(ErrorCode.CONFLICT, 'This pet already has an active booking during the selected stay dates');
+        }
+
+        // 7. Unit Capacity Check across every night of the stay
+        const existingBookings = await tx.booking.findMany({
+          where: {
+            boardingUnitId: unit.id,
+            status: { not: BookingStatus.CANCELLED },
+            startsAt: { lt: endsAtDate },
+            endsAt: { gt: startsAtDate },
+          },
+          select: { startsAt: true, endsAt: true },
+        });
+
+        for (const nightStr of nights) {
+          const occupiedCount = existingBookings.filter((b) => {
+            const bStart = formatDateInTimezone(b.startsAt, timeZone);
+            const bEnd = formatDateInTimezone(b.endsAt, timeZone);
+            return bStart <= nightStr && nightStr < bEnd;
+          }).length;
+
+          if (occupiedCount >= unit.capacity) {
+            throw new ConflictError(ErrorCode.SLOT_TAKEN, `Selected suite is fully booked on night ${nightStr}`);
+          }
+        }
+
+        // 8. Price calculation
+        const baseCents = nights.length * unit.nightlyCents;
+        let addOnsCents = 0;
+        const addOnsList: Array<{ id: string; name: string; priceCents: number }> = [];
+
+        if (addOnIds && addOnIds.length > 0) {
+          const addOnServices = await tx.service.findMany({
+            where: {
+              id: { in: addOnIds },
+              providerId,
+              isAddOn: true,
+              isActive: true,
+            },
+          });
+          for (const addon of addOnServices) {
+            addOnsCents += addon.basePriceCents;
+            addOnsList.push({
+              id: addon.id,
+              name: addon.name,
+              priceCents: addon.basePriceCents,
+            });
+          }
+        }
+
+        const totalCents = baseCents + addOnsCents;
+        const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const reference = `PN-BND-${randomSuffix}`;
+
+        // 9. Create Boarding Booking
+        const booking = await tx.booking.create({
+          data: {
+            reference,
+            userId,
+            petId: pet.id,
+            providerId: provider.id,
+            boardingUnitId: unit.id,
+            kind: BookingKind.BOARDING,
+            status: provider.autoConfirm ? BookingStatus.CONFIRMED : BookingStatus.PENDING,
+            startsAt: startsAtDate,
+            endsAt: endsAtDate,
+            priceCents: totalCents,
+            currency: unit.currency,
+            priceBreakdown: {
+              nights: nights.length,
+              nightlyCents: unit.nightlyCents,
+              baseCents,
+              addOnsCents,
+              totalCents,
+              addOns: addOnsList,
+            },
+            addOnIds: addOnIds || [],
+            notes,
+            careInstructions: careInstructions || undefined,
+            isDemo: provider.isDemo,
+            idempotencyKey,
+          },
+          include: {
+            provider: true,
+            unit: true,
+            pet: true,
+          },
+        });
+
+        // 10. Record Idempotency
+        const responsePayload = {
+          id: booking.id,
+          reference: booking.reference,
+          status: booking.status,
+          startsAt: booking.startsAt.toISOString(),
+          endsAt: booking.endsAt.toISOString(),
+          priceCents: booking.priceCents,
+          currency: booking.currency,
+          priceBreakdown: booking.priceBreakdown,
+          petName: booking.pet.name,
+          providerName: booking.provider.name,
+          boardingUnitName: booking.unit?.name ?? null,
+          careInstructions: booking.careInstructions,
+          isDemo: booking.isDemo,
+        };
+
+        await tx.idempotencyRecord.create({
+          data: {
+            key: idempotencyKey,
+            userId,
+            requestHash: crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex'),
+            responseStatus: 201,
+            responseBody: responsePayload as any,
+          },
+        });
+
+        return responsePayload;
+      });
+
+      return reply.status(201).send(createdBooking);
+    }
+
+    // -----------------------------------------------------------------
+    // GROOMING / VET BOOKING TRANSACTION
+    // -----------------------------------------------------------------
     const createdBooking = await prisma.$transaction(async (tx) => {
-      // Advisory transaction lock per provider + slot start
-      // This guarantees zero double-bookings even under 50+ parallel concurrent requests
       const lockKey = `${providerId}:${startsAtDate.toISOString()}`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
@@ -187,12 +478,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // 5. Capacity Check for the Slot
-      // Determine day stations
       const weekday = startsAtDate.getUTCDay();
       const schedule = provider.hours.find((h) => h.weekday === weekday) || provider.hours[0];
       const stations = schedule?.stations || 1;
 
-      // Count active overlapping bookings
       const overlappingCount = await tx.booking.count({
         where: {
           providerId,
@@ -204,6 +493,19 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (overlappingCount >= stations) {
         throw new ConflictError(ErrorCode.SLOT_TAKEN, 'This appointment slot is no longer available');
+      }
+
+      // Overlapping pet booking check
+      const petConflict = await tx.booking.findFirst({
+        where: {
+          petId: pet.id,
+          status: { not: BookingStatus.CANCELLED },
+          startsAt: { lt: endsAtDate },
+          endsAt: { gt: startsAtDate },
+        },
+      });
+      if (petConflict) {
+        throw new ConflictError(ErrorCode.CONFLICT, 'This pet already has an active booking during the selected time');
       }
 
       // 6. Calculate Price
@@ -324,6 +626,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       include: {
         provider: true,
         service: true,
+        unit: true,
         pet: true,
       },
     });
@@ -343,6 +646,8 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       providerPhone: b.provider.phone,
       serviceId: b.serviceId,
       serviceName: b.service?.name ?? null,
+      boardingUnitId: b.boardingUnitId,
+      boardingUnitName: b.unit?.name ?? null,
       kind: b.kind as any,
       status: b.status as any,
       startsAt: b.startsAt.toISOString(),
@@ -352,6 +657,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       priceBreakdown: b.priceBreakdown as any,
       addOnIds: b.addOnIds,
       notes: b.notes,
+      careInstructions: b.careInstructions as any,
       isDemo: b.isDemo,
       cancellationHours: b.provider.cancellationHours,
       cancelledAt: b.cancelledAt?.toISOString() ?? null,
@@ -369,6 +675,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     const b = await scopedRepo(userId).bookings.findById(id, {
       provider: true,
       service: true,
+      unit: true,
       pet: true,
     } as any);
 
@@ -389,6 +696,8 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       providerPhone: booking.provider.phone,
       serviceId: booking.serviceId,
       serviceName: booking.service?.name ?? null,
+      boardingUnitId: booking.boardingUnitId,
+      boardingUnitName: booking.unit?.name ?? null,
       kind: booking.kind,
       status: booking.status,
       startsAt: booking.startsAt.toISOString(),
@@ -398,6 +707,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       priceBreakdown: booking.priceBreakdown,
       addOnIds: booking.addOnIds,
       notes: booking.notes,
+      careInstructions: booking.careInstructions,
       isDemo: booking.isDemo,
       cancellationHours: booking.provider.cancellationHours,
       cancelledAt: booking.cancelledAt?.toISOString() ?? null,
@@ -467,7 +777,10 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     // Scoped check
     const existing = await prisma.booking.findFirst({
       where: { id, userId },
-      include: { provider: { include: { hours: true } } },
+      include: {
+        provider: { include: { hours: true, units: true } },
+        pet: { include: { vaccinations: true } },
+      },
     });
 
     if (!existing) {
@@ -478,7 +791,99 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       throw new ValidationError('Cannot reschedule a cancelled booking');
     }
 
-    // Interactive Transaction with Advisory Lock on new slot
+    const timeZone = existing.provider.timezone || 'America/New_York';
+
+    // -----------------------------------------------------------------
+    // BOARDING RESCHEDULE
+    // -----------------------------------------------------------------
+    if (existing.kind === BookingKind.BOARDING) {
+      const unit = existing.provider.units.find((u) => u.id === existing.boardingUnitId);
+      if (!unit) {
+        throw new NotFoundError('Boarding unit not found');
+      }
+
+      // Check lead time
+      const checkInStr = formatDateInTimezone(startsAtDate, timeZone);
+      const checkOutStr = formatDateInTimezone(endsAtDate, timeZone);
+      const todayInTz = formatDateInTimezone(new Date(), timeZone);
+
+      if (checkInStr <= todayInTz) {
+        throw new ValidationError('Boarding check-in must be booked at least one day in advance');
+      }
+
+      // Vaccine check through new check-out date
+      const vaccineCheck = validateBoardingVaccines(existing.pet.species, existing.pet.vaccinations, endsAtDate);
+      if (!vaccineCheck.valid) {
+        throw new VaccinesRequiredError('Pet vaccinations must be valid through the new check-out date');
+      }
+
+      const nights = getStayNightDates(checkInStr, checkOutStr);
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const lockKey = `boarding_unit:${unit.id}`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+
+        // Check unit capacity for every night of new stay excluding this booking
+        const existingBookings = await tx.booking.findMany({
+          where: {
+            id: { not: existing.id },
+            boardingUnitId: unit.id,
+            status: { not: BookingStatus.CANCELLED },
+            startsAt: { lt: endsAtDate },
+            endsAt: { gt: startsAtDate },
+          },
+          select: { startsAt: true, endsAt: true },
+        });
+
+        for (const nightStr of nights) {
+          const occupiedCount = existingBookings.filter((b) => {
+            const bStart = formatDateInTimezone(b.startsAt, timeZone);
+            const bEnd = formatDateInTimezone(b.endsAt, timeZone);
+            return bStart <= nightStr && nightStr < bEnd;
+          }).length;
+
+          if (occupiedCount >= unit.capacity) {
+            throw new ConflictError(ErrorCode.SLOT_TAKEN, `Selected suite is fully booked on night ${nightStr}`);
+          }
+        }
+
+        const baseCents = nights.length * unit.nightlyCents;
+        const addOnsCents = (existing.priceBreakdown as any)?.addOnsCents || 0;
+        const totalCents = baseCents + addOnsCents;
+
+        return tx.booking.update({
+          where: { id: existing.id },
+          data: {
+            startsAt: startsAtDate,
+            endsAt: endsAtDate,
+            priceCents: totalCents,
+            priceBreakdown: {
+              ...(existing.priceBreakdown as any),
+              nights: nights.length,
+              nightlyCents: unit.nightlyCents,
+              baseCents,
+              totalCents,
+            },
+            status: existing.provider.autoConfirm ? BookingStatus.CONFIRMED : BookingStatus.PENDING,
+            cancelledAt: null,
+            cancelReason: null,
+          },
+        });
+      });
+
+      return {
+        success: true,
+        bookingId: updated.id,
+        reference: updated.reference,
+        startsAt: updated.startsAt.toISOString(),
+        endsAt: updated.endsAt.toISOString(),
+        status: updated.status,
+      };
+    }
+
+    // -----------------------------------------------------------------
+    // GROOMING / VET RESCHEDULE
+    // -----------------------------------------------------------------
     const updated = await prisma.$transaction(async (tx) => {
       const lockKey = `${existing.providerId}:${startsAtDate.toISOString()}`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;

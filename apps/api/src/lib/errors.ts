@@ -54,3 +54,10 @@ export class ConflictError extends AppError {
     super(409, code, message);
   }
 }
+
+export class VaccinesRequiredError extends AppError {
+  constructor(message = 'Pet vaccination requirements not met for boarding', errors?: Array<{ field: string; message: string }>) {
+    super(422, ErrorCode.VACCINES_REQUIRED, message, errors);
+  }
+}
+

@@ -3,6 +3,47 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 5: Boarding & Multi-Day Stays] - 2026-10-14
+### Added
+- **Boarding Providers, Suites & Seed Data (`apps/api/prisma/seed`):**
+  - Seed database populated per Appendix B with 5 luxury pet retreats across New York (Meadowbrook Estate, Urban Haven Boarding DUMBO, Whispering Pines Country Retreat, Greenwich Village Feline & Canine Oasis, and Prospect Park Respite).
+  - Seeded suites/units with distinct capacities, nightly pricing ($85 - $165/night), pet sizes, species, and luxury amenities (soundproofing, webcams, climate control, outdoor runs).
+  - Pre-seeded test pets: fully vaccinated demo pet `Luna` (up-to-date Rabies, DHPP, Bordetella) and vaccine-restricted pets `Barnaby` (expired Rabies), `Mochi` (missing Bordetella), and `Cleo` (missing FVRCP).
+  - Seeded sample reviews (`isSample=true`) and realistic sample boarding stays (`PN-BND-SEED01`, `PN-BND-SEED02`).
+- **Multi-Night Boarding Availability Engine (`apps/api/src/modules/availability`):**
+  - Section 14.4 compliant multi-night availability engine: dynamically computes remaining capacity for every night in requested stay range $[checkIn, checkOut)$ without stored slot records.
+  - Hotel stay date boundaries: check-in is afternoon of checkIn date, check-out is morning of checkOut date; a booking occupies nights $d \in [checkIn, checkOut)$, ensuring departing and arriving guests on the same date do not collide.
+  - Enforced next-day minimum lead time ($\ge$ tomorrow).
+- **Server-Side Boarding Vaccination Policy Enforcement (`apps/api/src/modules/bookings` & `packages/shared`):**
+  - Section 17 compliant server-side vaccine enforcement: Dogs require Rabies + DHPP + Bordetella; Cats require Rabies + FVRCP. All core vaccine expiration dates must be $\ge$ check-out date.
+  - Server validation runs on both `POST /bookings/quote` and `POST /bookings`. Incomplete or expired records reject with `422 Unprocessable Entity` (`code: 'VACCINES_REQUIRED'`) detailing missing vaccines.
+- **Transactional Boarding Booking Pipeline (`apps/api/src/modules/bookings`):**
+  - `POST /bookings/quote`: Server-calculated nightly breakdown ($nights \times nightlyPrice$), pet size adjustment, and selected care add-ons. Client prices are never trusted.
+  - `POST /bookings`: Atomic boarding reservation with mandatory `Idempotency-Key` header, transactional advisory locking (`pg_advisory_xact_lock(hashtext('boarding_unit:' + unitId))`), multi-night remaining capacity validation, pet ownership checks, and care routine storage (feeding, medications, behavioural notes, emergency contact).
+  - Concurrency control: Tested with 25 simultaneous parallel requests competing for the final 1 unit of capacity — exactly 1 reservation succeeds (201) and 24 requests receive 409 `SLOT_TAKEN`.
+- **Frontend Boarding Discovery, Booking Wizard & Dashboard (`apps/web`):**
+  - Boarding Discovery Page (`/boarding`): Dedicated retreat search with responsive filters, interactive check-in/check-out search bar, starting nightly rates, amenities tags, and retreat cards.
+  - Boarding Facility Detail Page (`/boarding/[slug]`): Comprehensive retreat view with suite tiers, luxury amenity chips, operational hours, guest reviews, and direct reservation CTA.
+  - Reusable DateRangePicker Component (`DateRangePicker.tsx`): Calendar popover enforcing minimum 1-night stay, next-day lead time, visual stay selection, and duration badge.
+  - Multi-Step Boarding Booking Wizard (`/book/boarding/[providerSlug]`): 4-step booking flow:
+    1. Stay Dates & Suite Selection with dynamic nightly capacity badges.
+    2. Pet Selection with live vaccination compliance check and real-time amber warnings for expired or missing vaccines.
+    3. Custom Care Routine intake (feeding schedule, medications, temperament/behaviour, emergency contact).
+    4. Authoritative Price Summary & Policy Review with server quote recalculation and instant booking confirmation.
+  - Dashboard Stay Timeline (`/dashboard/bookings` & `/dashboard/bookings/[id]`): Stay duration badges, check-in and check-out schedule breakdown, suite allocation, care routine review card, and cancellation policy terms.
+
+### Verified
+- **Concurrency Test:** Exactly 1 out of 25 simultaneous parallel requests succeeds for the final available suite capacity; 24 requests receive 409 `SLOT_TAKEN`; database verified with exactly 1 reservation record.
+- **Vaccination Enforcement:** Verified rejection of un-vaccinated and expired pets with `422 Unprocessable Entity` (`VACCINES_REQUIRED`) and success for fully compliant pets through check-out date.
+- **Boundary Stays:** Verified adjacent stays (departing day $B$ vs arriving day $B$) do not block each other, and multi-night spans accurately exhaust capacity.
+- **Idempotency Verification:** Replaying requests with identical `Idempotency-Key` safely returns cached booking details without double billing or capacity reduction.
+- **Cross-User Isolation:** Scoped lookup returns `404 Not Found` when attempting to access another user's boarding booking.
+- **Comprehensive API Tests:** 56/56 tests passing in `apps/api` (covering auth, pets, grooming, boarding, availability).
+- **Full Monorepo Tests:** 72/72 tests passing across `apps/api` (56) and `apps/web` (16).
+- **Typecheck & Production Build:** Clean monorepo typecheck (`pnpm -r typecheck`); Next.js production build succeeded with 21 static and dynamic pages.
+
+---
+
 ## [Phase 4: Providers, Search & Grooming Booking] - 2026-10-14
 ### Added
 - **Provider & Service Discovery (`apps/api/src/modules/providers`):**

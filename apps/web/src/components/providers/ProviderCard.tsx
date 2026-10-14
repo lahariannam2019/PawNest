@@ -22,6 +22,20 @@ export function ProviderCard({ provider }: ProviderCardProps) {
     ? `$${(provider.priceFromCents / 100).toFixed(0)}`
     : null;
 
+  const basePath =
+    provider.type === 'BOARDING'
+      ? 'boarding'
+      : provider.type === 'VET_CLINIC'
+      ? 'vet'
+      : 'grooming';
+  const priceUnit = provider.type === 'BOARDING' ? ' / night' : '';
+  const exploreLabel =
+    provider.type === 'BOARDING'
+      ? 'Explore Suites'
+      : provider.type === 'VET_CLINIC'
+      ? 'View Clinic'
+      : 'Explore Services';
+
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-ivory-300/80 shadow-sm transition-all duration-300 hover:shadow-md hover:border-sage-300">
       {/* Top Media Arch Container */}
@@ -54,7 +68,7 @@ export function ProviderCard({ provider }: ProviderCardProps) {
         {/* Price from pill */}
         {priceFromFormatted && (
           <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-charcoal-900/80 backdrop-blur-xs text-white text-xs font-medium">
-            From {priceFromFormatted}
+            From {priceFromFormatted}{priceUnit}
           </div>
         )}
       </div>
@@ -105,14 +119,14 @@ export function ProviderCard({ provider }: ProviderCardProps) {
         {/* Action Bottom */}
         <div className="mt-auto pt-4 flex items-center justify-between border-t border-ivory-200">
           <Link
-            href={`/grooming/${provider.slug}`}
+            href={`/${basePath}/${provider.slug}`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-sage-700 hover:text-sage-800 transition-colors group-hover:translate-x-0.5 duration-200"
           >
-            Explore Services
+            {exploreLabel}
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          <Link href={`/book/grooming/${provider.slug}`}>
+          <Link href={`/book/${basePath}/${provider.slug}`}>
             <Button size="sm" variant="primary" className="text-xs px-3.5 py-1.5">
               Book
             </Button>

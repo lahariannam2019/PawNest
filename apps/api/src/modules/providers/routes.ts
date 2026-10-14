@@ -2,15 +2,19 @@ import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError } from '../../lib/errors.js';
 import { availabilityService } from '../availability/availability.service.js';
+import { BoardingAvailabilityService } from '../availability/boarding-availability.service.js';
 import {
   ProviderFilterSchema,
   AvailabilityQuerySchema,
+  BoardingAvailabilityQuerySchema,
   ProviderSummary,
   ServiceSummary,
   ReviewSummary,
   ProviderType,
   Species,
 } from '@pawnest/shared';
+
+const boardingAvailabilityService = new BoardingAvailabilityService();
 
 export const providerRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /providers (Discovery & search)
@@ -59,6 +63,9 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
           where: { isActive: true, isAddOn: false },
           select: { basePriceCents: true },
         },
+        units: {
+          select: { nightlyCents: true },
+        },
       },
     });
 
@@ -69,8 +76,10 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const items: ProviderSummary[] = providers.map((p) => {
-      const prices = p.services.map((s) => s.basePriceCents);
-      const minPriceCents = prices.length ? Math.min(...prices) : undefined;
+      const servicePrices = p.services.map((s) => s.basePriceCents);
+      const unitPrices = p.units?.map((u) => u.nightlyCents) || [];
+      const allPrices = [...servicePrices, ...unitPrices];
+      const minPriceCents = allPrices.length ? Math.min(...allPrices) : undefined;
 
       return {
         id: p.id,
@@ -113,6 +122,9 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
           where: { isActive: true },
           orderBy: [{ isAddOn: 'asc' }, { basePriceCents: 'asc' }],
         },
+        units: {
+          orderBy: { nightlyCents: 'asc' },
+        },
         reviews: {
           take: 10,
           orderBy: { createdAt: 'desc' },
@@ -127,8 +139,10 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       throw new NotFoundError('Provider not found');
     }
 
-    const mainPrices = provider.services.filter((s) => !s.isAddOn).map((s) => s.basePriceCents);
-    const minPriceCents = mainPrices.length ? Math.min(...mainPrices) : undefined;
+    const servicePrices = provider.services.filter((s) => !s.isAddOn).map((s) => s.basePriceCents);
+    const unitPrices = provider.units.map((u) => u.nightlyCents);
+    const allPrices = [...servicePrices, ...unitPrices];
+    const minPriceCents = allPrices.length ? Math.min(...allPrices) : undefined;
 
     return {
       provider: {
@@ -158,6 +172,17 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         priceFromCents: minPriceCents,
       },
       hours: provider.hours,
+      units: provider.units.map((u) => ({
+        id: u.id,
+        providerId: u.providerId,
+        name: u.name,
+        description: u.description,
+        capacity: u.capacity,
+        maxPets: u.maxPets,
+        nightlyCents: u.nightlyCents,
+        currency: u.currency,
+        amenities: u.amenities,
+      })),
       services: provider.services.map((s) => ({
         id: s.id,
         providerId: s.providerId,
@@ -220,7 +245,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
     }));
   });
 
-  // GET /providers/:slug/availability
+  // GET /providers/:slug/availability (Slot-based: Grooming & Vet)
   fastify.get<{ Params: { slug: string } }>('/providers/:slug/availability', async (request, reply) => {
     const { slug } = request.params;
     const query = AvailabilityQuerySchema.parse(request.query);
@@ -242,6 +267,30 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return { slots };
+  });
+
+  // GET /providers/:slug/boarding-availability (Multi-night: Boarding)
+  fastify.get<{ Params: { slug: string } }>('/providers/:slug/boarding-availability', async (request, reply) => {
+    const { slug } = request.params;
+    const query = BoardingAvailabilityQuerySchema.parse(request.query);
+
+    const provider = await prisma.provider.findUnique({
+      where: { slug },
+      select: { id: true, isActive: true },
+    });
+
+    if (!provider || !provider.isActive) {
+      throw new NotFoundError('Provider not found');
+    }
+
+    const availability = await boardingAvailabilityService.computeAvailability({
+      providerId: provider.id,
+      checkInDateStr: query.checkIn,
+      checkOutDateStr: query.checkOut,
+      petCount: query.petCount,
+    });
+
+    return { availability };
   });
 
   // GET /providers/:slug/reviews

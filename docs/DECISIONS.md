@@ -48,3 +48,18 @@ This document records technical and design decisions made during the implementat
   3. **Idempotency Strategy:** The `IdempotencyRecord` table records incoming idempotency keys scoped by `userId`. Within the same transaction, if an existing record exists with the same payload hash, the previous response body and status code are returned. If an in-progress or identical request occurs, replay is safe and consistent.
 - **Reason:** Guarantees absolute consistency without race conditions or overbooking under heavy concurrent load, while keeping the database schema lean without storing millions of empty future time slots.
 
+---
+
+### [2026-10-14] Decision 006: Multi-Night Boarding Availability, Hotel Boundaries & Server-Side Vaccine Enforcement
+- **Context:** Section 14.4, Section 17, and Phase 5 require boarding facilities, multi-night stays, and pet safety guarantees:
+  1. Multi-night dynamic capacity engine calculating nightly remaining capacity across stay dates $[checkIn, checkOut)$ without stored slot records.
+  2. Hotel date boundaries: check-in is afternoon of checkIn date, check-out is morning of checkOut date; a booking occupies nights $d \in [checkIn, checkOut)$, so adjacent stays (guest A checking out on day $B$, guest B checking in on day $B$) do not collide.
+  3. Strict server-side vaccination enforcement: Dogs require valid Rabies, DHPP, and Bordetella; Cats require valid Rabies and FVRCP. All core vaccine expiration dates must be $\ge$ check-out date. Rejection returns `422 Unprocessable Entity` with `code: 'VACCINES_REQUIRED'` and missing vaccine list.
+  4. Transactional advisory locking for multi-night capacity: inside a transaction, `SELECT pg_advisory_xact_lock(hashtext(concat('boarding_unit:', $boardingUnitId)))` serializes concurrent booking attempts for that unit, preventing overselling the final available unit capacity.
+  5. Cross-user isolation: customer booking queries scope records by `userId`, returning `404 Not Found` for foreign or non-existent IDs.
+- **Decision:**
+  1. Implemented `BoardingAvailabilityService.getBoardingAvailability` computing continuous night availability across $[checkIn, checkOut)$.
+  2. Added shared validator `validateBoardingVaccines` and wired it into `POST /bookings` and `POST /bookings/quote` as well as the frontend wizard for immediate visual feedback before checkout.
+  3. Acquired `pg_advisory_xact_lock` on the unit ID inside transactional booking creation, verified with a 25-request concurrent test where exactly 1 booking succeeds and 24 return `409 Conflict` (`SLOT_TAKEN`).
+- **Reason:** Enforces pet safety on the backend, prevents race conditions across multi-night stays, and preserves data integrity without mock state.
+

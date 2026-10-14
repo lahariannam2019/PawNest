@@ -20,7 +20,10 @@ const pg = new EmbeddedPostgres({
 
 async function main() {
   try {
-    await pg.initialise();
+    const isInitialized = fs.existsSync(path.join(dataDir, 'PG_VERSION'));
+    if (!isInitialized) {
+      await pg.initialise();
+    }
     await pg.start();
     console.log('🐾 Embedded PostgreSQL is running and ready on localhost:5432 (database: pawnest)');
 

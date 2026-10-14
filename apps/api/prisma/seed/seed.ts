@@ -73,6 +73,8 @@ async function main() {
   });
 
   // 3. Pets for Maya Lin
+  await prisma.review.deleteMany({ where: { userId: demoUser.id } });
+  await prisma.booking.deleteMany({ where: { userId: demoUser.id } });
   await prisma.pet.deleteMany({ where: { userId: demoUser.id } });
 
   const barnaby = await prisma.pet.create({
@@ -185,6 +187,51 @@ async function main() {
             name: 'FVRCP Core Vaccine',
             administeredOn: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000),
             expiresOn: new Date(Date.now() + 245 * 24 * 60 * 60 * 1000),
+            vetName: 'Dr. Sarah Mitchell, DVM',
+          },
+        ],
+      },
+    },
+  });
+
+  const luna = await prisma.pet.create({
+    data: {
+      userId: demoUser.id,
+      name: 'Luna',
+      species: Species.DOG,
+      breed: 'Golden Retriever',
+      sex: PetSex.FEMALE,
+      birthDate: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
+      approxAgeMonths: 24,
+      weightKg: 28.0,
+      sizeTier: SizeTier.L,
+      neutered: true,
+      microchipId: '985141009941829',
+      allergies: [],
+      conditions: [],
+      medications: [],
+      temperament: ['Friendly', 'Social', 'Gentle with other dogs'],
+      fears: [],
+      notes: 'Loves group play and swimming. Very food motivated.',
+      vetClinicName: 'Greenpoint Animal Hospital',
+      vaccinations: {
+        create: [
+          {
+            name: 'Rabies (3-Year)',
+            administeredOn: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+            expiresOn: new Date(Date.now() + 660 * 24 * 60 * 60 * 1000), // Valid for nearly 2 years
+            vetName: 'Dr. Sarah Mitchell, DVM',
+          },
+          {
+            name: 'DHPP Core Booster',
+            administeredOn: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+            expiresOn: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000), // Valid for 300 days
+            vetName: 'Dr. Sarah Mitchell, DVM',
+          },
+          {
+            name: 'Bordetella (Oral)',
+            administeredOn: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+            expiresOn: new Date(Date.now() + 335 * 24 * 60 * 60 * 1000), // Valid for 335 days
             vetName: 'Dr. Sarah Mitchell, DVM',
           },
         ],
@@ -586,6 +633,497 @@ async function main() {
             sizeAdjustmentCents: 1000,
             addOnsCents: 0,
             totalCents: 6500,
+          },
+          isDemo: true,
+        },
+      });
+    }
+  }
+
+  // 6. Boarding Facilities & Suites (5 Facilities per Appendix B)
+  const boardingData = [
+    {
+      slug: 'meadowbrook-canine-retreat',
+      name: 'Meadowbrook Canine Retreat & Lodge',
+      tagline: 'Country-club style boarding with expansive private play lawns',
+      description: 'Set on quiet leafy acreage in Millbrook with private heated and air-conditioned suites, orthopaedic bedding, and three daily outdoor play sessions.',
+      addressLine: '42 Country Club Way',
+      city: 'Millbrook',
+      region: 'NY',
+      country: 'US',
+      lat: 41.785,
+      lng: -73.6934,
+      timezone: 'America/New_York',
+      phone: '+1 (845) 677-9201',
+      speciesAccepted: [Species.DOG],
+      amenities: ['Private Outdoor Run', 'Orthopaedic Bedding', '24/7 Veterinary Supervision', 'Webcam Suite Access', 'Daily Group Play', 'Medication Support'],
+      imageKeys: ['hero-dog.jpg', 'about-dog.jpg', 'story-dog.jpg'],
+      ratingAvg: 4.95,
+      ratingCount: 48,
+      cancellationHours: 48,
+      units: [
+        {
+          name: 'Deluxe Garden Suite',
+          description: 'Spacious private suite featuring direct access to a private grass yard, raised memory foam bed, and soundproof acoustic walls.',
+          capacity: 6,
+          maxPets: 2,
+          nightlyCents: 7500,
+          amenities: ['Private Grass Yard', 'Memory Foam Bed', 'Soundproof Walls', '2x Daily Walks'],
+        },
+        {
+          name: 'Penthouse Canine Suite',
+          description: 'Ultra-luxe suite with panoramic daylight views, 24/7 high-definition suite webcam, bedtime tuck-in service, and organic nightcap treat.',
+          capacity: 3,
+          maxPets: 2,
+          nightlyCents: 12000,
+          amenities: ['24/7 Suite Webcam', 'Bedtime Tuck-in', 'Gourmet Nightly Treat', 'Dedicated Concierge'],
+        },
+        {
+          name: 'Classic Lodge Room',
+          description: 'Comfortable, climate-controlled slumber pod designed for restful sleep after active days in the agility yard.',
+          capacity: 10,
+          maxPets: 1,
+          nightlyCents: 5500,
+          amenities: ['Climate Controlled', 'Daily Housekeeping', 'Activity Yard Access', 'Fresh Bedding Daily'],
+        },
+      ],
+      addOns: [
+        { name: 'Extended Nature Trail Hike (45 min)', description: 'One-on-one guided woodland scent walk with personal caregiver.', basePriceCents: 3000, durationMin: 45 },
+        { name: 'Bedtime Snuggle & Paw Balm Massage', description: 'Gentle paw massage with organic shea butter and soothing lavender mist.', basePriceCents: 2000, durationMin: 20 },
+        { name: 'Gourmet Kong Stuffer (Peanut Butter & Pumpkin)', description: 'Frozen enrichment toy packed with organic peanut butter, blueberries, and pumpkin puree.', basePriceCents: 1200, durationMin: 15 },
+        { name: 'Medication Administration', description: 'Administered precisely on schedule by trained staff with medical log verification.', basePriceCents: 1000, durationMin: 10 },
+      ],
+    },
+    {
+      slug: 'the-urban-haven-dog-hotel',
+      name: 'The Urban Haven Dog Hotel',
+      tagline: 'Boutique overnight hotel and holistic wellness sanctuary',
+      description: 'Located in DUMBO with lofted ceilings, ambient soundscapes, individual suites with private glass entries, and twice-daily rooftop strolls overlooking the Manhattan skyline.',
+      addressLine: '74 Water Street',
+      city: 'Brooklyn',
+      region: 'NY',
+      country: 'US',
+      lat: 40.7033,
+      lng: -73.9892,
+      timezone: 'America/New_York',
+      phone: '+1 (718) 555-0144',
+      speciesAccepted: [Species.DOG],
+      amenities: ['Rooftop Play Yard', 'Aromatherapy Mist', '24/7 On-Site Attendant', 'Nightly Storytime', 'Gourmet Meal Service'],
+      imageKeys: ['about-dog.jpg', 'hero-dog.jpg', 'reviews-dog.jpg'],
+      ratingAvg: 4.91,
+      ratingCount: 37,
+      cancellationHours: 24,
+      units: [
+        {
+          name: 'DUMBO Loft Suite',
+          description: 'Spacious exposed-brick loft room with plush tufted bed, ambient noise machine, and gentle dimming lights.',
+          capacity: 5,
+          maxPets: 2,
+          nightlyCents: 8500,
+          amenities: ['Exposed Brick Loft', 'Sound Machine', 'Rooftop Access', 'Daily Photo Update'],
+        },
+        {
+          name: 'Executive Skyline Suite',
+          description: 'Corner room with custom furniture, personal air purification, live streaming video camera, and individual concierge.',
+          capacity: 2,
+          maxPets: 2,
+          nightlyCents: 14000,
+          amenities: ['Private Webcam', 'Personal Air Purifier', 'Evening Rooftop Stroll', 'Hand-Crafted Treats'],
+        },
+        {
+          name: 'Cosy Snug Suite',
+          description: 'Intimate, warm bedroom designed specifically to reduce anxiety in puppies and smaller dogs.',
+          capacity: 8,
+          maxPets: 1,
+          nightlyCents: 6500,
+          amenities: ['Calming Pheromone Diffuser', 'Cuddle Blanket', 'Quiet Zone', '2x Daily Walks'],
+        },
+      ],
+      addOns: [
+        { name: 'Rooftop Sunset Stroll (30 min)', description: 'Private evening promenade with stunning sunset views of Brooklyn Bridge.', basePriceCents: 2500, durationMin: 30 },
+        { name: 'Departure Cleanse & Fluff Dry', description: 'Fresh bath and thorough coat blowout before heading home.', basePriceCents: 4500, durationMin: 45 },
+      ],
+    },
+    {
+      slug: 'whispering-pines-boarding',
+      name: 'Whispering Pines Boarding & Spa',
+      tagline: 'Spacious country suites with dedicated personal caregivers',
+      description: 'A peaceful woodland campus designed to eliminate kennel stress. Every guest receives individual one-on-one attention, enrichment games, and tailored feeding routines.',
+      addressLine: '185 Pine Ridge Road',
+      city: 'Bedford',
+      region: 'NY',
+      country: 'US',
+      lat: 41.2043,
+      lng: -73.6437,
+      timezone: 'America/New_York',
+      phone: '+1 (914) 234-7800',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Forest Nature Trails', 'Separate Feline Wing', '24/7 Caregiver', 'Specialized Diets', 'Heated Floors'],
+      imageKeys: ['story-dog.jpg', 'about-dog.jpg', 'footer-dog.jpg'],
+      ratingAvg: 4.88,
+      ratingCount: 29,
+      cancellationHours: 48,
+      units: [
+        {
+          name: 'Pine Ridge Canine Suite',
+          description: 'Expansive private bedroom with heated slate floors, raised orthopaedic cot, and double-insulated walls for acoustic calm.',
+          capacity: 6,
+          maxPets: 2,
+          nightlyCents: 7000,
+          amenities: ['Heated Slate Floors', 'Orthopaedic Bed', 'Nature Trail Walk', 'Daily Brushing'],
+        },
+        {
+          name: 'Serenity Feline Chalet',
+          description: 'Multi-level vertical climbing towers, bird-watching window perches, and soothing feline pheromones in a 100% dog-free wing.',
+          capacity: 4,
+          maxPets: 1,
+          nightlyCents: 4500,
+          amenities: ['Bird-Watching Perch', 'Multi-Level Tower', 'Separate Quiet Wing', 'Individual Playtime'],
+        },
+        {
+          name: 'Woodland Family Cabin',
+          description: 'Large suite sized comfortably for two to three dogs from the same household to stay and play together.',
+          capacity: 2,
+          maxPets: 3,
+          nightlyCents: 13000,
+          amenities: ['Multi-Pet Capacity', 'Double Play Yards', 'Family Cuddle Time', 'Private Yard'],
+        },
+      ],
+      addOns: [
+        { name: 'Forest Agility & Scent Games', description: 'Interactive sensory exploration and agility exercises in our secure wooded enclosure.', basePriceCents: 2800, durationMin: 35 },
+        { name: 'Herbal Paw & Coat Conditioner', description: 'Organic botanical leave-in coat spray and gentle paw pad moisturizer.', basePriceCents: 1500, durationMin: 15 },
+      ],
+    },
+    {
+      slug: 'greenwich-village-pet-oasis',
+      name: 'Greenwich Village Pet Oasis',
+      tagline: 'Quiet sanctuary suites in the heart of downtown Manhattan',
+      description: 'Tailored for urban dogs who cherish calm routines. Sound-dampened suites, soothing classical music, individual leash walks in Washington Square, and organic treats.',
+      addressLine: '210 Bleecker Street',
+      city: 'New York',
+      region: 'NY',
+      country: 'US',
+      lat: 40.7295,
+      lng: -74.0021,
+      timezone: 'America/New_York',
+      phone: '+1 (212) 555-0199',
+      speciesAccepted: [Species.DOG],
+      amenities: ['Private Leash Walks', 'Organic Treats', 'Medical Care Administration', 'Webcam Live Feed', 'Air Purification'],
+      imageKeys: ['hero-dog.jpg', 'newsletter-dog.jpg', 'about-dog.jpg'],
+      ratingAvg: 4.93,
+      ratingCount: 41,
+      cancellationHours: 24,
+      units: [
+        {
+          name: 'Village Classic Suite',
+          description: 'Chic downtown bedroom equipped with orthopaedic bolsters, HEPA medical-grade air filtration, and calming acoustics.',
+          capacity: 6,
+          maxPets: 1,
+          nightlyCents: 8000,
+          amenities: ['HEPA Air Filter', 'Orthopaedic Bolster Bed', '2x Neighborhood Walks', 'Evening Treat'],
+        },
+        {
+          name: 'Washington Square Penthouse',
+          description: 'Spacious suite with floor-to-ceiling soundproof glass, personal webcam feed, and private concierge park strolls.',
+          capacity: 2,
+          maxPets: 2,
+          nightlyCents: 13500,
+          amenities: ['Webcam Stream', 'Park Strolls', 'Gourmet Bedtime Bowl', 'Concierge Updates'],
+        },
+      ],
+      addOns: [
+        { name: 'Private Washington Square Excursion', description: 'Dedicated personal walker for 45 minutes of calm park exploration.', basePriceCents: 3200, durationMin: 45 },
+      ],
+    },
+    {
+      slug: 'prospect-park-paws-respite',
+      name: 'Prospect Park Paws Respite',
+      tagline: 'Modern boutique boarding adjacent to Prospect Park',
+      description: 'Designed around natural daylight, large secure play pavilions, and individual climate-controlled slumber pods for maximum rest after active park days.',
+      addressLine: '320 7th Avenue',
+      city: 'Brooklyn',
+      region: 'NY',
+      country: 'US',
+      lat: 40.6695,
+      lng: -73.9812,
+      timezone: 'America/New_York',
+      phone: '+1 (718) 555-0182',
+      speciesAccepted: [Species.DOG, Species.CAT],
+      amenities: ['Park Excursions', 'Daylight Atrium', '24/7 Monitoring', 'Sensory Enrichment', 'Grooming Add-ons'],
+      imageKeys: ['about-dog.jpg', 'story-dog.jpg', 'hero-dog.jpg'],
+      ratingAvg: 4.97,
+      ratingCount: 52,
+      cancellationHours: 24,
+      units: [
+        {
+          name: 'Park View Garden Suite',
+          description: 'Sunny ground-floor suite looking out onto landscaped courtyards with plush bedding and private quiet zone.',
+          capacity: 5,
+          maxPets: 2,
+          nightlyCents: 7800,
+          amenities: ['Courtyard View', 'Plush Bedding', '2x Park Outings', 'Sound Insulation'],
+        },
+        {
+          name: 'Atrium Slumber Pod',
+          description: 'Cozy, den-like sleeping pod engineered for restful restorative sleep after active daycare sessions.',
+          capacity: 8,
+          maxPets: 1,
+          nightlyCents: 6200,
+          amenities: ['Restorative Acoustic Pod', 'Calming Lighting', 'Park Outing', 'Nightly Check-in'],
+        },
+        {
+          name: 'Clementine Feline Sanctuary',
+          description: 'Tranquil kitty suite with climbing bridges, interactive puzzle feeders, and floor-to-ceiling sun perches in a quiet feline retreat.',
+          capacity: 4,
+          maxPets: 1,
+          nightlyCents: 4800,
+          amenities: ['Climbing Bridges', 'Sun Perch', 'Puzzle Feeders', 'Catnip Play Sessions'],
+        },
+      ],
+      addOns: [
+        { name: 'Prospect Park Long-Leash Adventure (60 min)', description: 'Fun, invigorating nature adventure through the ravine trails.', basePriceCents: 3500, durationMin: 60 },
+        { name: 'Evening Brush & Belly Rub Session', description: 'Relaxing 20-minute unwinding session before tuck-in.', basePriceCents: 1800, durationMin: 20 },
+      ],
+    },
+  ];
+
+  let firstBoardingProvider: any = null;
+  let firstBoardingUnit: any = null;
+
+  for (const b of boardingData) {
+    const { units, addOns, ...providerData } = b;
+    const provider = await prisma.provider.upsert({
+      where: { slug: providerData.slug },
+      update: {
+        ...providerData,
+        type: ProviderType.BOARDING,
+        isDemo: true,
+        isActive: true,
+      },
+      create: {
+        ...providerData,
+        type: ProviderType.BOARDING,
+        isDemo: true,
+        isActive: true,
+      },
+    });
+
+    if (!firstBoardingProvider) firstBoardingProvider = provider;
+
+    // Hours (08:00 - 19:00 Mon-Sun)
+    for (let day = 0; day <= 6; day++) {
+      await prisma.providerHours.upsert({
+        where: {
+          providerId_weekday_opensAt: {
+            providerId: provider.id,
+            weekday: day,
+            opensAt: '08:00',
+          },
+        },
+        update: { closesAt: '19:00', stations: 5 },
+        create: {
+          providerId: provider.id,
+          weekday: day,
+          opensAt: '08:00',
+          closesAt: '19:00',
+          stations: 5,
+        },
+      });
+    }
+
+    // Boarding Units
+    for (const unit of units) {
+      const existingUnit = await prisma.boardingUnit.findFirst({
+        where: { providerId: provider.id, name: unit.name },
+      });
+      let savedUnit;
+      if (existingUnit) {
+        savedUnit = await prisma.boardingUnit.update({
+          where: { id: existingUnit.id },
+          data: unit,
+        });
+      } else {
+        savedUnit = await prisma.boardingUnit.create({
+          data: {
+            ...unit,
+            providerId: provider.id,
+            currency: 'USD',
+          },
+        });
+      }
+      if (!firstBoardingUnit) firstBoardingUnit = savedUnit;
+    }
+
+    // Add-on services
+    for (const svc of addOns) {
+      const existingSvc = await prisma.service.findFirst({
+        where: { providerId: provider.id, name: svc.name },
+      });
+      if (existingSvc) {
+        await prisma.service.update({
+          where: { id: existingSvc.id },
+          data: {
+            ...svc,
+            kind: BookingKind.BOARDING,
+            isAddOn: true,
+          },
+        });
+      } else {
+        await prisma.service.create({
+          data: {
+            ...svc,
+            providerId: provider.id,
+            kind: BookingKind.BOARDING,
+            isAddOn: true,
+            currency: 'USD',
+            bufferMin: 0,
+            species: providerData.speciesAccepted,
+          },
+        });
+      }
+    }
+
+    // Sample Reviews
+    const sampleReviews = [
+      {
+        userName: 'Elena Rostova',
+        rating: 5,
+        title: 'Complete peace of mind while away on travel',
+        body: 'Finding boarding for a dog with sensitive digestion was terrifying until we discovered this sanctuary. The daily updates and webcam made our trip stress-free.',
+      },
+      {
+        userName: 'Marcus Sterling',
+        rating: 5,
+        title: 'Spacious suites and deeply caring staff',
+        body: 'The private outdoor yard attached to the suite is worth every penny. Our retriever came home refreshed, happy, and smelling wonderful.',
+      },
+      {
+        userName: 'Chloe Bennett',
+        rating: 5,
+        title: 'Clean, serene and beautifully managed',
+        body: 'Zero loud kennel noise. You can tell real thought went into the acoustics and bedding. We will never board anywhere else.',
+      },
+    ];
+
+    for (let i = 0; i < sampleReviews.length; i++) {
+      const rev = sampleReviews[i];
+      const seedBookingRef = `PN-BND-REV-${provider.slug.slice(0, 8)}-${i}`;
+      let seedBooking = await prisma.booking.findUnique({ where: { reference: seedBookingRef } });
+      if (!seedBooking) {
+        const pastDate = new Date(Date.now() - (30 + i * 15) * 24 * 60 * 60 * 1000);
+        seedBooking = await prisma.booking.create({
+          data: {
+            reference: seedBookingRef,
+            userId: demoUser.id,
+            petId: luna.id,
+            providerId: provider.id,
+            boardingUnitId: firstBoardingUnit ? firstBoardingUnit.id : null,
+            kind: BookingKind.BOARDING,
+            status: BookingStatus.COMPLETED,
+            startsAt: pastDate,
+            endsAt: new Date(pastDate.getTime() + 3 * 24 * 60 * 60 * 1000),
+            priceCents: 22500,
+            currency: 'USD',
+            priceBreakdown: {
+              nights: 3,
+              nightlyCents: 7500,
+              baseCents: 22500,
+              addOnsCents: 0,
+              totalCents: 22500,
+            },
+            isDemo: true,
+          },
+        });
+      }
+
+      await prisma.review.upsert({
+        where: { bookingId: seedBooking.id },
+        update: {},
+        create: {
+          userId: demoUser.id,
+          providerId: provider.id,
+          bookingId: seedBooking.id,
+          rating: rev.rating,
+          title: rev.title,
+          body: rev.body,
+          isSample: true,
+        },
+      });
+    }
+  }
+
+  // 7. Seed Past & Upcoming Boarding Bookings for Maya & Luna
+  if (firstBoardingProvider && firstBoardingUnit) {
+    const demoPastBoardingRef = 'PN-BND-SEED01';
+    let pastBoarding = await prisma.booking.findUnique({ where: { reference: demoPastBoardingRef } });
+    if (!pastBoarding) {
+      const pastStart = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000);
+      pastBoarding = await prisma.booking.create({
+        data: {
+          reference: demoPastBoardingRef,
+          userId: demoUser.id,
+          petId: luna.id,
+          providerId: firstBoardingProvider.id,
+          boardingUnitId: firstBoardingUnit.id,
+          kind: BookingKind.BOARDING,
+          status: BookingStatus.COMPLETED,
+          startsAt: pastStart,
+          endsAt: new Date(pastStart.getTime() + 3 * 24 * 60 * 60 * 1000),
+          priceCents: 22500,
+          currency: 'USD',
+          priceBreakdown: {
+            nights: 3,
+            nightlyCents: 7500,
+            baseCents: 22500,
+            addOnsCents: 0,
+            totalCents: 22500,
+          },
+          careInstructions: {
+            feeding: '2 cups Acana Pacifica morning and evening',
+            medications: 'None',
+            behaviour: 'Gentle, loves social group play',
+            emergencyContact: 'Maya Lin: +1 (555) 234-5678',
+          },
+          isDemo: true,
+        },
+      });
+    }
+
+    const demoUpcomingBoardingRef = 'PN-BND-SEED02';
+    const upcomingStart = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    upcomingStart.setUTCHours(14, 0, 0, 0);
+    const upcomingEnd = new Date(upcomingStart.getTime() + 4 * 24 * 60 * 60 * 1000);
+    upcomingEnd.setUTCHours(11, 0, 0, 0);
+
+    const existingUpcomingBnd = await prisma.booking.findUnique({
+      where: { reference: demoUpcomingBoardingRef },
+    });
+    if (!existingUpcomingBnd) {
+      await prisma.booking.create({
+        data: {
+          reference: demoUpcomingBoardingRef,
+          userId: demoUser.id,
+          petId: luna.id,
+          providerId: firstBoardingProvider.id,
+          boardingUnitId: firstBoardingUnit.id,
+          kind: BookingKind.BOARDING,
+          status: BookingStatus.CONFIRMED,
+          startsAt: upcomingStart,
+          endsAt: upcomingEnd,
+          priceCents: 30000,
+          currency: 'USD',
+          priceBreakdown: {
+            nights: 4,
+            nightlyCents: 7500,
+            baseCents: 30000,
+            addOnsCents: 0,
+            totalCents: 30000,
+          },
+          careInstructions: {
+            feeding: '2 cups kibble at 8am and 6pm with warm water',
+            medications: 'None',
+            behaviour: 'Very energetic in the morning, sleeps soundly with soft music',
+            emergencyContact: 'Daniel Reed: +1 (555) 876-5432',
           },
           isDemo: true,
         },

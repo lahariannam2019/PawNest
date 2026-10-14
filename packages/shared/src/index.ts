@@ -185,6 +185,63 @@ export function getVaccineStatus(
   return VaccinationStatus.UP_TO_DATE;
 }
 
+export const CORE_VACCINES: Record<Species, string[]> = {
+  [Species.DOG]: ['Rabies', 'DHPP', 'Bordetella'],
+  [Species.CAT]: ['Rabies', 'FVRCP'],
+  [Species.OTHER]: [],
+};
+
+const VACCINE_ALIASES: Record<string, string[]> = {
+  DHPP: ['dhpp', 'dapp', 'da2pp', 'distemper', 'parvovirus'],
+  Bordetella: ['bordetella', 'kennel cough'],
+  Rabies: ['rabies'],
+  FVRCP: ['fvrcp', 'feline distemper'],
+};
+
+export interface VaccineCheckResult {
+  valid: boolean;
+  missingVaccines: string[];
+  expiringVaccines: Array<{ name: string; expiresOn: string }>;
+}
+
+export function validateBoardingVaccines(
+  species: Species,
+  vaccinations: Array<{ name: string; expiresOn?: string | Date | null }>,
+  checkOutDate: string | Date
+): VaccineCheckResult {
+  const required = CORE_VACCINES[species] || [];
+  const missingVaccines: string[] = [];
+  const expiringVaccines: Array<{ name: string; expiresOn: string }> = [];
+
+  const checkOutTime = new Date(checkOutDate).getTime();
+
+  for (const req of required) {
+    const aliases = VACCINE_ALIASES[req] || [req.toLowerCase()];
+    const match = vaccinations.find((v) => {
+      const vName = v.name.toLowerCase().trim();
+      return aliases.some((alias) => vName.includes(alias));
+    });
+
+    if (!match) {
+      missingVaccines.push(req);
+    } else if (match.expiresOn) {
+      const expiryTime = new Date(match.expiresOn).getTime();
+      if (expiryTime < checkOutTime) {
+        expiringVaccines.push({
+          name: match.name,
+          expiresOn: new Date(match.expiresOn).toISOString().split('T')[0],
+        });
+      }
+    }
+  }
+
+  return {
+    valid: missingVaccines.length === 0 && expiringVaccines.length === 0,
+    missingVaccines,
+    expiringVaccines,
+  };
+}
+
 const DateInputSchema = z
   .string()
   .refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date format' });
@@ -394,11 +451,14 @@ export interface ProviderSummary {
   lat: number;
   lng: number;
   timezone: string;
+  phone?: string | null;
+  websiteUrl?: string | null;
   speciesAccepted: Species[];
   amenities: string[];
   imageKeys: string[];
   ratingAvg: number;
   ratingCount: number;
+  cancellationHours?: number;
   priceFromCents?: number;
   isDemo: boolean;
 }
@@ -486,12 +546,43 @@ export interface ReviewSummary {
   createdAt: string;
 }
 
+export interface BoardingUnitSummary {
+  id: string;
+  providerId: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  maxPets: number;
+  nightlyCents: number;
+  currency: string;
+  amenities: string[];
+}
+
+export interface BoardingUnitAvailability {
+  unit: BoardingUnitSummary;
+  available: boolean;
+  remainingPerNight: Record<string, number>;
+  minRemaining: number;
+  nights: number;
+  pricePerNightCents: number;
+  totalPriceCents: number;
+}
+
 export interface BookingPriceBreakdown {
   baseCents: number;
-  sizeAdjustmentCents: number;
+  sizeAdjustmentCents?: number;
+  nights?: number;
+  nightlyCents?: number;
   addOnsCents: number;
   totalCents: number;
   addOns?: Array<{ id: string; name: string; priceCents: number }>;
+}
+
+export interface CareInstructions {
+  feeding?: string;
+  medications?: string;
+  behaviour?: string;
+  emergencyContact?: string;
 }
 
 export interface BookingSummary {
@@ -509,6 +600,8 @@ export interface BookingSummary {
   providerPhone?: string | null;
   serviceId?: string | null;
   serviceName?: string | null;
+  boardingUnitId?: string | null;
+  boardingUnitName?: string | null;
   kind: BookingKind;
   status: BookingStatus;
   startsAt: string;
@@ -518,6 +611,7 @@ export interface BookingSummary {
   priceBreakdown: BookingPriceBreakdown;
   addOnIds: string[];
   notes?: string | null;
+  careInstructions?: CareInstructions | null;
   isDemo: boolean;
   cancellationHours: number;
   cancelledAt?: string | null;
