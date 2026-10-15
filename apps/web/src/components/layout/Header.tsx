@@ -7,10 +7,12 @@ import { Search, Heart, ShoppingBag, User as UserIcon, Menu, X } from 'lucide-re
 import { Button } from '../ui/Button';
 import { Container } from './Container';
 import { useAuth } from '../../lib/auth/AuthContext';
+import { useCart } from '../../lib/cart/CartContext';
 
 export function Header() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { openCart, itemCount } = useCart();
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
@@ -94,16 +96,18 @@ export function Header() {
               <Heart className="w-5 h-5" />
             </Link>
 
-            <Link
-              href="/cart"
-              aria-label="Shopping cart"
+            <button
+              onClick={openCart}
+              aria-label={`Shopping cart, ${itemCount} items`}
               className="p-2.5 rounded-full text-[var(--color-charcoal-700)] hover:text-[var(--color-charcoal-900)] hover:bg-[var(--color-ivory-200)] transition-colors relative"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] text-[10px] font-bold rounded-full flex items-center justify-center">
-                0
-              </span>
-            </Link>
+              {itemCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] text-[10px] font-bold rounded-full flex items-center justify-center animate-fade-in">
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              )}
+            </button>
 
             <div className="h-4 w-px bg-[var(--color-ivory-300)] mx-1" />
 
@@ -196,16 +200,18 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
-            <Link
-              href="/cart"
-              aria-label="Shopping cart"
+            <button
+              onClick={openCart}
+              aria-label={`Shopping cart, ${itemCount} items`}
               className="p-2 rounded-full text-[var(--color-charcoal-700)] relative"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-4 h-4 bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] text-[10px] font-bold rounded-full flex items-center justify-center">
-                0
-              </span>
-            </Link>
+              {itemCount > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] text-[10px] font-bold rounded-full flex items-center justify-center animate-fade-in">
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-[var(--color-charcoal-900)] hover:bg-[var(--color-ivory-200)]"

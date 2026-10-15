@@ -80,4 +80,20 @@ This document records technical and design decisions made during the implementat
   5. Built full frontend veterinary discovery, clinic detail, booking wizard with medical history pre-fill and non-diagnostic checklist, and dashboard booking timeline.
 - **Reason:** Guarantees patient safety, prevents misleading online diagnostics, fulfills exact regulatory disclaimers, and ensures durable, zero-duplicate reminder delivery across appointments.
 
+---
+
+### [2026-10-15] Decision 008: Supplies Commerce, Advisory Stock Locks, Re-Quote Guarantees & Demo Payment Rules
+- **Context:** Section 9.5, Section 14, Section 17, and Phase 7 require a resilient supplies shop, cart, checkout, and inventory subsystem:
+  1. **Product Catalogue & Variants:** 8 standard categories per Appendix B with multi-variant hierarchy (size, weight, flavour), inventory tracking (normal, low-stock $\le 5$, and out-of-stock), customer ratings, and transparent demo data tagging (`isSample: true`, `isDemo: true`).
+  2. **Authoritative Cart Engine:** Server-side price calculation, 1–20 line quantity clamp, 50 line cap, automatic guest cart merging upon authentication, free shipping threshold ($\ge \$75.00$ or flat $\$10.00$), and New York State/City sales tax rate ($8.875\%$).
+  3. **Stock Reservation & Advisory Locking:** Checkout sessions create a 15-minute reservation against physical variant inventory (`reserved` increment). To strictly prevent overselling under high concurrency (e.g. flash sales), the checkout session acquires PostgreSQL transactional advisory locks:
+     `SELECT pg_advisory_xact_lock(hashtext(concat('variant_stock:', variantId)))`
+     sorted by `variantId` to guarantee deadlock-free execution. If available stock $(stock - reserved) < qty$, the reservation aborts with `409 Conflict` (`SLOT_TAKEN`).
+  4. **Price Drift Re-Quotation:** Before creating checkout sessions, the server re-validates the snapshot unit price against active variant database pricing. Any drift immediately rejects the checkout attempt with `409 Conflict` (`CART_CHANGED`), forcing a client-side cart refresh.
+  5. **Demo Payment Integrity:** Per explicit plan requirement, demo orders must NEVER display a real `paid` status. Demo checkout sets order `status: 'DEMO_PLACED'`, `paymentMode: 'DEMO'`, and marks reservation consumed into final line items. Stripe checkout flows handle signed webhooks idempotently with transition to `PAID`.
+  6. **Inventory Recovery:** Background cleanup (`expireOldReservations`) and cancellation endpoints (`POST /orders/:id/cancel`) release reserved/allocated stock back to variant inventory atomically.
+- **Decision:** Implemented Prisma models (`Category`, `Product`, `ProductVariant`, `ProductReview`, `Cart`, `CartItem`, `Order`, `OrderItem`), Fastify routes (`/products`, `/cart`, `/checkout`, `/orders`), pluggable `PaymentProvider` (`DemoPaymentProvider`, `StripePaymentProvider`), Next.js `CartContext`, slide-over `CartDrawer`, `ProductViewer3D`, and responsive storefront pages (`/supplies`, `/supplies/p/[slug]`, `/cart`, `/checkout`, `/dashboard/orders`).
+- **Reason:** Guarantees zero overselling under heavy concurrent checkouts, ensures financial and inventory integrity, provides a seamless guest-to-member shopping transition, and strictly respects demo data transparency.
+
+
 

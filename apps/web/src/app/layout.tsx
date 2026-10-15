@@ -22,6 +22,8 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from '../lib/auth/AuthContext';
+import { CartProvider } from '../lib/cart/CartContext';
+import { CartDrawer } from '../components/cart/CartDrawer';
 
 export default function RootLayout({
   children,
@@ -47,7 +49,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen bg-[var(--color-ivory-100)] text-[var(--color-charcoal-700)] selection:bg-[var(--color-sage-100)]">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <CartProvider>
+            {children}
+            <CartDrawer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

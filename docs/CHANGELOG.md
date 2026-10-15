@@ -3,6 +3,56 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 7: Supplies, Cart, Checkout & Orders] - 2026-10-15
+### Added
+- **Product Catalogue, Variants & Seed Dataset (`apps/api/prisma/seed`):**
+  - Seeded 8 core pet supply categories per Appendix B (`food`, `treats`, `beds`, `collars-leashes`, `bowls-feeders`, `grooming-tools`, `toys`, `wellness-supplements`).
+  - Seeded 18 realistic, artisanal products with ~45 multi-tier variants (size, weight, flavour), full specifications, materials, and ingredients.
+  - Realistic inventory levels seeded with low-stock warnings ($\le 5$) and an out-of-stock item (`canine-cognition-botanical-drops`, 0 stock) for testing empty-stock constraints.
+  - Seeded verified customer reviews tagged `isSample=true` and product badges tagged `isDemo=true`.
+  - Pre-seeded realistic demo historical order (`PN-ORD-SEED01`) for `demoUser`.
+- **Catalogue & Search API Endpoints (`apps/api/src/modules/products`):**
+  - `GET /categories`: Categories list with active product count.
+  - `GET /products`: Multi-filter search supporting category, species (`DOG`, `CAT`, `ALL`), search query `q`, stock status (`inStock=true`), sorting (`featured`, `price-asc`, `price-desc`, `rating`), and cursor pagination.
+  - `GET /products/:slug`: Comprehensive product detail with variants, specs, and review statistics.
+  - `GET /products/:slug/reviews` & `POST /products/:slug/reviews`: Customer product reviews with ratings, helpfulness counters, and purchase verification.
+- **Cart Subsystem (`apps/api/src/modules/cart`):**
+  - `GET /cart`: Full server-side computed cart summary (subtotal, shipping, 8.875% NYC tax, total, and free shipping progress).
+  - `POST /cart/items`: Add variant with server-side stock clamp (1–20) and max 50 line enforcement.
+  - `PATCH /cart/items/:id`: Change quantity with stock limit check.
+  - `DELETE /cart/items/:id`: Item removal.
+  - `POST /cart/merge`: Atomic reconciliation of anonymous guest cart items into authenticated user cart upon login.
+- **Stock Reservation, Concurrency Protection & Checkout Pipeline (`apps/api/src/modules/orders`):**
+  - `POST /checkout/session`: Authoritative server re-quote; detects price changes (`409 CART_CHANGED`).
+  - Transactional Advisory Locking: Acquires `pg_advisory_xact_lock(hashtext('variant_stock:' || variantId))` sorted by ID inside serializable transaction to prevent overselling under high concurrency.
+  - 15-minute reservation window with automatic background recovery job (`expireOldReservations`).
+  - Pluggable payment provider architecture (`PaymentProvider`):
+    - `DemoPaymentProvider`: Safe local testing setting `status: 'DEMO_PLACED'` and `paymentMode: 'DEMO'` (strictly never marked as real `paid`).
+    - `StripePaymentProvider`: Creates Stripe Checkout Session and verifies incoming webhooks.
+  - `POST /checkout/demo/confirm`: Finalizes demo checkout, converts reservation to permanent order items, and empties cart.
+  - `GET /orders`, `GET /orders/:id`, `POST /orders/:id/cancel`: User order tracking, timeline, and order cancellation with automatic stock restocking.
+  - `PATCH /admin/orders/:id/status`: Admin status lifecycle transition (`PROCESSING`, `SHIPPED`, `DELIVERED`, `CANCELLED`).
+- **Frontend Supplies Shopping Experience (`apps/web`):**
+  - Unified `CartContext`: Manages server-synced cart for authenticated users and local storage cart for guests, with auto-merge on login.
+  - Global `CartDrawer`: Slide-over drawer with $75 free shipping threshold bar, line items stepper, price breakdown, and checkout CTA.
+  - Product Catalogue (`/supplies`): Filter bar with category pills, species toggle, in-stock checkbox, sort selector, and search input.
+  - Product Detail Page (`/supplies/p/[slug]`): Interactive variant selector, stock level indicator, delivery estimate, specifications/ingredients tabs, and sample customer reflections.
+  - 3D Interactive Product Viewer (`ProductViewer3D`): 360-degree interactive mouse/touch drag rotation with graceful static image fallback.
+  - Dedicated Cart Page (`/cart`): Full-page table layout with quantity controls, item removal, and order summary.
+  - Multi-Step Checkout (`/checkout`): Shipping address form, payment method selector (Demo vs Stripe), price conflict resolution, and demo order confirmation modal.
+  - Customer Order History & Detail (`/dashboard/orders` & `/dashboard/orders/[id]`): Order list with status badges, delivery timeline, line items, address, and cancellation capability.
+
+### Verified
+- **Concurrency Test (`orders.test.ts`):** 25 simultaneous parallel checkout requests competing for the single last remaining stock unit; **exactly 1 succeeds (201) and 24 fail with 409 (`SLOT_TAKEN`)**; zero overselling verified in database.
+- **Price Drift Protection:** Verified that altering variant price in database immediately triggers `409 Conflict` (`CART_CHANGED`) during checkout creation.
+- **Stock Reservation Expiry:** Verified that `expireOldReservations()` safely unreserves inventory after 15 minutes.
+- **Demo Order Payment Integrity:** Verified demo checkouts strictly save `status: 'DEMO_PLACED'` with `paymentMode: 'DEMO'`.
+- **Order Cancellation Restock:** Cancelling an order restores variant stock levels.
+- **Complete Test Suite:** 20/20 new order tests passing; 85/85 API tests passing across entire monorepo.
+- **Typecheck & Production Build:** Monorepo typecheck passed cleanly with 0 errors (`pnpm -r typecheck`).
+
+---
+
 ## [Phase 6: Veterinary Appointments & Medical Records] - 2026-10-14
 ### Added
 - **Veterinary Providers & Seed Dataset (`apps/api/prisma/seed`):**

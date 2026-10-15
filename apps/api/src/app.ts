@@ -21,6 +21,9 @@ import { petRoutes } from './modules/pets/routes.js';
 import { uploadRoutes } from './modules/uploads/routes.js';
 import { providerRoutes } from './modules/providers/routes.js';
 import { bookingRoutes } from './modules/bookings/routes.js';
+import { productRoutes } from './modules/products/routes.js';
+import { cartRoutes } from './modules/cart/routes.js';
+import { orderRoutes } from './modules/orders/routes.js';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -51,7 +54,7 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
   // Rate Limiting
   app.register(rateLimit, {
-    max: 120,
+    max: process.env.NODE_ENV === 'test' ? 10000 : 120,
     timeWindow: '1 minute',
   });
 
@@ -193,6 +196,9 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
       v1.register(uploadRoutes);
       v1.register(providerRoutes);
       v1.register(bookingRoutes);
+      v1.register(productRoutes);
+      v1.register(cartRoutes);
+      v1.register(orderRoutes);
     },
     { prefix: '/api/v1' }
   );

@@ -1,5 +1,6 @@
 import { PrismaClient, Species, PetSex, SizeTier, ProviderType, BookingKind, BookingStatus, Role, EmailTokenType } from '@prisma/client';
 import { hashPassword } from '../../src/lib/crypto.js';
+import { seedProductsAndOrders } from './products-seed.js';
 
 const prisma = new PrismaClient();
 
@@ -1527,6 +1528,9 @@ async function main() {
       }
     }
   }
+
+  // 10. Phase 7: Seed Products, Categories, Reviews, and Delivered Order
+  await seedProductsAndOrders(prisma, demoUser.id);
 
   console.log('Seed completed successfully!');
   console.log('Demo Credentials:');

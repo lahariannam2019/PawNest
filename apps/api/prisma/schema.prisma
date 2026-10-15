@@ -102,6 +102,7 @@ model User {
   favourites      Favourite[]
   cart            Cart?
   orders          Order[]
+  productReviews  ProductReview[]
   notifications   Notification[]
   emailTokens     EmailToken[]
   auditLogs       AuditLog[]
@@ -371,8 +372,24 @@ model Product {
   createdAt   DateTime         @default(now())
   category    Category         @relation(fields: [categoryId], references: [id])
   variants    ProductVariant[]
+  reviews     ProductReview[]
 
   @@index([categoryId, isActive])
+}
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String?
+  body      String
+  isSample  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
 }
 
 model ProductVariant {

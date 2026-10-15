@@ -381,48 +381,7 @@ export const CreateReviewSchema = z.object({
 });
 export type CreateReviewInput = z.infer<typeof CreateReviewSchema>;
 
-// ==========================================
-// CART & CHECKOUT SCHEMAS
-// ==========================================
-
-export const AddCartItemSchema = z.object({
-  variantId: z.string().min(1),
-  quantity: z.number().int().min(1).max(20),
-});
-export type AddCartItemInput = z.infer<typeof AddCartItemSchema>;
-
-export const UpdateCartItemSchema = z.object({
-  quantity: z.number().int().min(1).max(20),
-});
-export type UpdateCartItemInput = z.infer<typeof UpdateCartItemSchema>;
-
-export const MergeCartSchema = z.object({
-  items: z.array(
-    z.object({
-      variantId: z.string(),
-      quantity: z.number().int().min(1).max(20),
-    })
-  ).max(50),
-});
-export type MergeCartInput = z.infer<typeof MergeCartSchema>;
-
-export const ShippingAddressSchema = z.object({
-  recipient: z.string().min(2),
-  line1: z.string().min(3),
-  line2: z.string().optional().nullable(),
-  city: z.string().min(2),
-  region: z.string().optional().nullable(),
-  postalCode: z.string().min(2),
-  country: z.string().length(2),
-  phone: z.string().optional().nullable(),
-});
-export type ShippingAddressInput = z.infer<typeof ShippingAddressSchema>;
-
-export const CheckoutSessionSchema = z.object({
-  shippingAddress: ShippingAddressSchema,
-  paymentMode: z.nativeEnum(PaymentMode).default(PaymentMode.DEMO),
-});
-export type CheckoutSessionInput = z.infer<typeof CheckoutSessionSchema>;
+// (Cart & Checkout schemas are declared in Phase 7 section below)
 
 // ==========================================
 // ENTITY DTO INTERFACES
@@ -717,4 +676,259 @@ export const VET_SYMPTOM_OPTIONS: Record<Species, string[]> = {
   ],
 };
 
+// ==========================================
+// PHASE 7: SUPPLIES, CART & COMMERCE
+// ==========================================
 
+export const FREE_SHIPPING_THRESHOLD_CENTS = 7500; // $75.00
+export const STANDARD_SHIPPING_CENTS = 1000; // $10.00
+export const ESTIMATED_TAX_RATE = 0.08875; // 8.875% NYC sales tax
+export const STOCK_RESERVATION_TTL_MINUTES = 15;
+
+export const ProductSortOption = {
+  NEWEST: 'newest',
+  PRICE_ASC: 'price_asc',
+  PRICE_DESC: 'price_desc',
+  RATING: 'rating',
+} as const;
+export type ProductSortOption = (typeof ProductSortOption)[keyof typeof ProductSortOption];
+
+export const ProductFilterSchema = z.object({
+  category: z.string().optional(),
+  q: z.string().optional(),
+  species: z.nativeEnum(Species).optional(),
+  lifeStage: z.string().optional(),
+  brand: z.string().optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  inStock: z
+    .union([z.boolean(), z.enum(['true', 'false'])])
+    .transform((val) => (typeof val === 'boolean' ? val : val === 'true'))
+    .optional(),
+  sort: z.nativeEnum(ProductSortOption).default(ProductSortOption.NEWEST).optional(),
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20).optional(),
+});
+export type ProductFilterInput = z.infer<typeof ProductFilterSchema>;
+
+export const AddToCartSchema = z.object({
+  variantId: z.string().min(1, 'Variant ID is required'),
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(20, 'Maximum 20 units per item'),
+});
+export type AddToCartInput = z.infer<typeof AddToCartSchema>;
+export const AddCartItemSchema = AddToCartSchema;
+export type AddCartItemInput = AddToCartInput;
+
+export const UpdateCartItemSchema = z.object({
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(20, 'Maximum 20 units per item'),
+});
+export type UpdateCartItemInput = z.infer<typeof UpdateCartItemSchema>;
+
+export const MergeCartSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().min(1),
+        quantity: z.number().int().min(1).max(20),
+      })
+    )
+    .max(50, 'Cannot exceed 50 cart lines'),
+});
+export type MergeCartInput = z.infer<typeof MergeCartSchema>;
+
+export const ShippingAddressSchema = z.object({
+  recipient: z.string().min(2, 'Recipient name is required'),
+  line1: z.string().min(3, 'Address line 1 is required'),
+  line2: z.string().optional().nullable(),
+  city: z.string().min(2, 'City is required'),
+  region: z.string().min(2, 'State / Province is required'),
+  postalCode: z.string().min(3, 'Postal code is required'),
+  country: z.string().length(2, 'Country code must be 2 letters').default('US'),
+  phone: z.string().optional().nullable(),
+});
+export type ShippingAddressInput = z.infer<typeof ShippingAddressSchema>;
+
+export const CheckoutSessionSchema = z.object({
+  shippingAddress: ShippingAddressSchema,
+  clientExpectedTotalCents: z.number().int().positive('Expected total must be positive').optional(),
+  paymentMode: z.nativeEnum(PaymentMode).default(PaymentMode.DEMO).optional(),
+});
+export type CheckoutSessionInput = z.infer<typeof CheckoutSessionSchema>;
+
+export const ConfirmDemoCheckoutSchema = z.object({
+  demoToken: z.string().min(1, 'Demo token is required'),
+});
+export type ConfirmDemoCheckoutInput = z.infer<typeof ConfirmDemoCheckoutSchema>;
+
+export const AdminUpdateOrderStatusSchema = z.object({
+  status: z.nativeEnum(OrderStatus),
+  notes: z.string().optional(),
+});
+export type AdminUpdateOrderStatusInput = z.infer<typeof AdminUpdateOrderStatusSchema>;
+
+export const CreateProductReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  title: z.string().max(100).optional(),
+  body: z.string().min(5).max(1000),
+});
+export type CreateProductReviewInput = z.infer<typeof CreateProductReviewSchema>;
+
+export interface CategorySummary {
+  id: string;
+  slug: string;
+  name: string;
+  parentId?: string | null;
+  sortOrder: number;
+  imageKey?: string | null;
+  productCount?: number;
+  children?: CategorySummary[];
+}
+
+export interface ProductVariantSummary {
+  id: string;
+  productId: string;
+  sku: string;
+  name: string;
+  priceCents: number;
+  compareAtCents?: number | null;
+  currency: string;
+  stock: number;
+  reserved: number;
+  availableStock: number;
+  weightGrams?: number | null;
+}
+
+export interface ProductListItemSummary {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  species: Species[];
+  lifeStage: string[];
+  tags: string[];
+  imageKeys: string[];
+  model3dKey?: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+  minPriceCents: number;
+  maxPriceCents: number;
+  inStock: boolean;
+  isDemo: boolean;
+}
+
+export interface ProductDetailSummary {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  description: string;
+  details?: {
+    specs?: Record<string, string>;
+    ingredients?: string;
+    materials?: string;
+    careInstructions?: string;
+    deliveryEstimate?: string;
+  } | null;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  species: Species[];
+  lifeStage: string[];
+  tags: string[];
+  imageKeys: string[];
+  model3dKey?: string | null;
+  ratingAvg: number;
+  ratingCount: number;
+  isDemo: boolean;
+  isActive: boolean;
+  variants: ProductVariantSummary[];
+}
+
+export interface ProductReviewSummary {
+  id: string;
+  productId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  title?: string | null;
+  body: string;
+  isSample: boolean;
+  createdAt: string;
+}
+
+export interface CartItemSummary {
+  id: string;
+  variantId: string;
+  productId: string;
+  productSlug: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  unitPriceCents: number;
+  quantity: number;
+  totalPriceCents: number;
+  imageKey?: string | null;
+  availableStock: number;
+  inStock: boolean;
+}
+
+export interface CartSummary {
+  id: string;
+  items: CartItemSummary[];
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  freeShippingThresholdCents: number;
+  qualifiesForFreeShipping: boolean;
+  itemCount: number;
+}
+
+export interface OrderItemSummary {
+  id: string;
+  variantId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  unitPriceCents: number;
+  quantity: number;
+  totalPriceCents: number;
+}
+
+export interface OrderSummary {
+  id: string;
+  number: string;
+  userId: string;
+  status: OrderStatus;
+  paymentMode: PaymentMode;
+  currency: string;
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  shippingAddress: ShippingAddressInput;
+  isDemo: boolean;
+  reservationExpiresAt?: string | null;
+  placedAt: string;
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  cancelledAt?: string | null;
+  items: OrderItemSummary[];
+}
+
+export interface CheckoutSessionResult {
+  orderId: string;
+  orderNumber: string;
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  paymentMode: PaymentMode;
+  expiresAt: string;
+  checkoutUrl?: string;
+  demoToken?: string;
+}
