@@ -627,6 +627,57 @@ describe('PawNest Phase 7 — Supplies, Cart, Checkout & Orders End-to-End', () 
       expect(secondRes.json().alreadyProcessed).toBe(true);
     });
 
+    it('POST /webhooks/stripe verifies HMAC-SHA256 signature when secret is configured', async () => {
+      const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const testSecret = 'whsec_test_secret_key_12345';
+      process.env.STRIPE_WEBHOOK_SECRET = testSecret;
+
+      try {
+        const dummyPayload = {
+          type: 'checkout.session.completed',
+          data: { object: { metadata: { orderNumber: 'PN-NONEXISTENT' } } },
+        };
+        const rawJson = JSON.stringify(dummyPayload);
+
+        // 1. Missing signature
+        const missingRes = await app.inject({
+          method: 'POST',
+          url: '/api/v1/webhooks/stripe',
+          payload: dummyPayload,
+        });
+        expect(missingRes.statusCode).toBe(422);
+        expect(missingRes.json().detail).toContain('Missing stripe-signature header');
+
+        // 2. Invalid signature
+        const invalidRes = await app.inject({
+          method: 'POST',
+          url: '/api/v1/webhooks/stripe',
+          headers: { 'stripe-signature': 'invalid_signature_hex' },
+          payload: dummyPayload,
+        });
+        expect(invalidRes.statusCode).toBe(422);
+        expect(invalidRes.json().detail).toContain('Invalid Stripe webhook signature');
+
+        // 3. Valid signature (HMAC SHA256 of rawJson)
+        const validSig = crypto
+          .createHmac('sha256', testSecret)
+          .update(rawJson)
+          .digest('hex');
+
+        const validRes = await app.inject({
+          method: 'POST',
+          url: '/api/v1/webhooks/stripe',
+          headers: { 'stripe-signature': validSig },
+          payload: dummyPayload,
+        });
+        // Signature passed! Will fail with 404 because order doesn't exist
+        expect(validRes.statusCode).toBe(404);
+        expect(validRes.json().detail).toContain('PN-NONEXISTENT');
+      } finally {
+        process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+      }
+    });
+
     it('Enforces cross-user authorization isolation (User B receives 404 for User A order)', async () => {
       // Find User A's order
       const userAOrder = await prisma.order.findFirst({ where: { userId: userAId } });

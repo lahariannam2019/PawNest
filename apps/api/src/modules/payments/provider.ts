@@ -32,13 +32,14 @@ export class DemoPaymentProvider implements PaymentProvider {
 }
 
 export class StripePaymentProvider implements PaymentProvider {
-  private secretKey: string | undefined;
-  private webhookSecret: string | undefined;
-
-  constructor() {
-    this.secretKey = process.env.STRIPE_SECRET_KEY;
-    this.webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  get secretKey(): string | undefined {
+    return process.env.STRIPE_SECRET_KEY;
   }
+
+  get webhookSecret(): string | undefined {
+    return process.env.STRIPE_WEBHOOK_SECRET;
+  }
+
 
   async createPaymentSession(params: CheckoutSessionParams): Promise<PaymentSessionResult> {
     // If Stripe secret key is configured, create live/test Stripe session
@@ -61,8 +62,11 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async verifyWebhook(payload: string | Buffer, signature?: string): Promise<{ orderNumber: string; isPaid: boolean }> {
-    if (this.webhookSecret && signature) {
-      // HMAC SHA256 validation if signature provided
+    if (this.webhookSecret) {
+      if (!signature) {
+        throw new Error('Missing stripe-signature header');
+      }
+      // HMAC SHA256 validation
       const expectedSignature = crypto
         .createHmac('sha256', this.webhookSecret)
         .update(payload)
@@ -72,6 +76,7 @@ export class StripePaymentProvider implements PaymentProvider {
         throw new Error('Invalid Stripe webhook signature');
       }
     }
+
 
     const event = typeof payload === 'string' ? JSON.parse(payload) : JSON.parse(payload.toString('utf8'));
     const session = event.data?.object;
