@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
+import { resolveImageSrc } from '@/lib/images';
 import { apiFetch } from '@/lib/api/client';
 import { ProviderSummary, BoardingUnitSummary, ReviewSummary } from '@pawnest/shared';
 import {
@@ -100,10 +101,7 @@ export default function BoardingDetailPage({ params }: BoardingDetailPageProps) 
     );
   }
 
-  const primaryImage =
-    provider.imageKeys && provider.imageKeys.length > 0
-      ? provider.imageKeys[0]
-      : '/images/hero-dog.jpg';
+  const primaryImage = resolveImageSrc(provider.imageKeys?.[0], '/images/svc-board-01.jpg');
 
   const routineItems = [
     { time: '08:00', title: 'Morning Nature Promenade', desc: 'Fresh morning scents, gentle lawn strolls, and individual bathroom relief.' },

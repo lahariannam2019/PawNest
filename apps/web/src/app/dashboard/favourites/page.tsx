@@ -9,6 +9,7 @@ import { FavouriteSummary, FavouriteKind } from '@pawnest/shared';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { FavouriteButton } from '../../../components/ui/FavouriteButton';
+import { resolveImageSrc } from '@/lib/images';
 
 export default function FavouritesPage() {
   const [favourites, setFavourites] = React.useState<FavouriteSummary[]>([]);
@@ -167,7 +168,7 @@ export default function FavouritesPage() {
                 >
                   <div className="relative aspect-[16/10] bg-[var(--color-ivory-200)] overflow-hidden">
                     <img
-                      src={p.imageKeys[0] || 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=800&q=80'}
+                      src={resolveImageSrc(p.imageKeys?.[0], '/images/svc-groom-01.jpg')}
                       alt={p.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -231,7 +232,7 @@ export default function FavouritesPage() {
                 >
                   <div className="relative aspect-[16/10] bg-[var(--color-ivory-200)] overflow-hidden">
                     <img
-                      src={prod.imageKeys[0] || 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=800&q=80'}
+                      src={resolveImageSrc(prod.imageKeys?.[0], '/images/svc-shop-01.jpg')}
                       alt={prod.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />

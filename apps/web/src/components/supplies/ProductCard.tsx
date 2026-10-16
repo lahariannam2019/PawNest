@@ -7,12 +7,15 @@ import { Star, ShoppingBag, Eye, ArrowRight } from 'lucide-react';
 import { ProductListItemSummary } from '@pawnest/shared';
 import { Badge } from '../ui/Badge';
 import { FavouriteButton } from '../ui/FavouriteButton';
+import { resolveImageSrc } from '@/lib/images';
 
 export function ProductCard({ product }: { product: ProductListItemSummary }) {
   const isPriceRange = product.minPriceCents !== product.maxPriceCents;
   const formattedPrice = isPriceRange
     ? `$${(product.minPriceCents / 100).toFixed(2)} – $${(product.maxPriceCents / 100).toFixed(2)}`
     : `$${(product.minPriceCents / 100).toFixed(2)}`;
+
+  const imageSrc = resolveImageSrc(product.imageKeys?.[0], '/images/svc-shop-01.jpg');
 
   return (
     <div className="group rounded-[var(--radius-lg)] bg-[var(--color-ivory-50)] border border-[var(--color-ivory-300)] overflow-hidden shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:border-[var(--color-sage-300)] transition-all duration-300 flex flex-col h-full">
@@ -21,19 +24,13 @@ export function ProductCard({ product }: { product: ProductListItemSummary }) {
         href={`/supplies/p/${product.slug}`}
         className="block relative aspect-square bg-[var(--color-ivory-200)] overflow-hidden border-b border-[var(--color-ivory-300)]"
       >
-        {product.imageKeys[0] ? (
-          <Image
-            src={product.imageKeys[0]}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center font-serif text-sm text-[var(--color-charcoal-400)]">
-            PawNest
-          </div>
-        )}
+        <Image
+          src={imageSrc}
+          alt={product.name}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+        />
 
         {/* Overlay Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">

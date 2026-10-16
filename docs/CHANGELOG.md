@@ -3,6 +3,39 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 9: Visual Quality, End-to-End Verification & Production Readiness] - 2026-10-16
+### Added
+- **Automated Real Browser Visual Audit (`scripts/audit-e2e.mjs`):**
+  - Integrated Playwright with real headless Chromium testing both desktop (1440x900) and mobile (390x844) viewports.
+  - Audited 22 primary routes: Homepage, Auth (Sign-in, Sign-up), Grooming listing & detail, Boarding listing & detail, Vet listing & detail, Supplies catalog & PDP, Empty cart, Auth dashboard overview, Pets list & new pet form, Bookings timeline, Orders list, Saved favourites, Notification popover, Full cart with items, and Checkout page.
+  - Captured and archived 37 high-resolution screenshots in artifacts directory.
+  - Confirmed 0 page runtime errors, 0 network failures, and 100% HTTP 200 responses.
+- **Image URL Normalization & Safe Resiliency (`apps/web/src/lib/images.ts`):**
+  - Built `resolveImageSrc` utility ensuring all seeded and user-generated image paths have valid leading slashes or external URLs, with automatic semantic fallback graphics for grooming, boarding, vet, products, and pet avatars.
+  - Integrated safe image resolution into `ProviderCard`, `ProductCard`, and provider detail pages, eliminating Next.js `Invalid URL` parsing crashes.
+  - Corrected database seed keys for boarding and veterinary providers in `apps/api/prisma/seed/seed.ts`.
+- **Artisanal Catalog Hygiene Script (`apps/api/scripts/cleanup.ts`):**
+  - Purged 12 test-generated variants and products from the supplies catalog, preserving pure artisanal pet supplies.
+- **Automated 9 Critical Customer Journeys E2E Suite (`scripts/test-all-journeys.mjs`):**
+  - Validated all 9 critical user journeys with end-to-end assertions:
+    1. Sign Up, Sign In, Profile Retrieval (`GET /me`), Sign Out, and Session Clearing.
+    2. Pet Profile creation with size-tier auto-derivation, weight update, and core vaccination records (Rabies, DHPP, Bordetella).
+    3. Multi-service booking pipeline: Grooming (`PN-GRM-`) via availability slot engine, Boarding (`PN-BND-`) with nightly quotes & care instructions, and Veterinary Consultations (`PN-VET-`) with emergency acknowledgment.
+    4. Supplies catalog search, in-stock variant discovery, cart line additions, and subtotal/tax/shipping computation.
+    5. Stock reservation, clearly marked demo checkout (`DEMO_PLACED`, paymentMode: `DEMO`), and order history verification.
+    6. Favourites toggle, retrieval (`GET /me/favourites`), and removal via DELETE endpoint.
+    7. Notification centre event tracking, unread count tracking, and atomic mark-all-read.
+    8. Review eligibility gate: rejection of premature reviews (`422 VALIDATION_FAILED`), status advancement to `COMPLETED`, review submission (`201`), and duplicate rejection (`409 CONFLICT`).
+    9. Cross-user privacy isolation: verifying Customer B receives `404 Not Found` when attempting to access or review Customer A's pets, bookings, and orders.
+
+### Verified
+- **Monorepo Test Suite:** 102/102 backend tests passing, 16/16 frontend unit tests passing (Total: 118 passing tests across workspace).
+- **Monorepo Typecheck:** `pnpm -r typecheck` passed with 0 errors across `@pawnest/shared`, `@pawnest/api`, and `@pawnest/web`.
+- **Production Build:** `pnpm --filter web build` completed cleanly, compiling 25 static and dynamic routes.
+- **E2E Customer Journeys:** 9 of 9 critical journeys passed cleanly.
+
+---
+
 ## [Phase 8: Dashboard Unification & Notifications] - 2026-10-15
 ### Added
 - **Database-Driven Dashboard Overview API (`apps/api/src/modules/dashboard`):**

@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
+import { resolveImageSrc } from '@/lib/images';
 import { apiFetch } from '@/lib/api/client';
 import { ProviderSummary, ServiceSummary, ReviewSummary } from '@pawnest/shared';
 import {
@@ -185,7 +186,7 @@ export default function ProviderDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
             <div className="relative aspect-[16/10] md:col-span-2 rounded-3xl overflow-hidden bg-ivory-200">
               <Image
-                src={provider.imageKeys[0] || '/images/svc-groom-01.jpg'}
+                src={resolveImageSrc(provider.imageKeys?.[0], '/images/svc-groom-01.jpg')}
                 alt={provider.name}
                 fill
                 priority
@@ -195,7 +196,7 @@ export default function ProviderDetailPage() {
             <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
               <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-ivory-200">
                 <Image
-                  src={provider.imageKeys[1] || '/images/how-01.jpg'}
+                  src={resolveImageSrc(provider.imageKeys?.[1], '/images/how-01.jpg')}
                   alt={`${provider.name} styling suite`}
                   fill
                   className="object-cover"
@@ -203,7 +204,7 @@ export default function ProviderDetailPage() {
               </div>
               <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-ivory-200">
                 <Image
-                  src={provider.imageKeys[2] || '/images/story-01.jpg'}
+                  src={resolveImageSrc(provider.imageKeys?.[2], '/images/story-01.jpg')}
                   alt={`${provider.name} care detail`}
                   fill
                   className="object-cover"

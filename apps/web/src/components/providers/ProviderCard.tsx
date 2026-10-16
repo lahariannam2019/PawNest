@@ -8,16 +8,21 @@ import { Star, MapPin, Sparkles, Clock, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
+import { resolveImageSrc } from '@/lib/images';
 
 interface ProviderCardProps {
   provider: ProviderSummary;
 }
 
 export function ProviderCard({ provider }: ProviderCardProps) {
-  const imageSrc =
-    provider.imageKeys && provider.imageKeys.length > 0
-      ? provider.imageKeys[0]
+  const fallback =
+    provider.type === 'BOARDING'
+      ? '/images/svc-board-01.jpg'
+      : provider.type === 'VET_CLINIC'
+      ? '/images/svc-vet-01.jpg'
       : '/images/svc-groom-01.jpg';
+
+  const imageSrc = resolveImageSrc(provider.imageKeys?.[0], fallback);
 
   const priceFromFormatted = provider.priceFromCents
     ? `$${(provider.priceFromCents / 100).toFixed(0)}`

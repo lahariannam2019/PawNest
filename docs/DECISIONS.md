@@ -128,6 +128,30 @@ This document records technical and design decisions made during the implementat
   4. Built responsive Next.js frontend pages and components: `/dashboard`, `/dashboard/favourites`, `NotificationBell`, `ReviewModal`, and integrated `FavouriteButton` across provider/product cards and detail pages.
 - **Reason:** Creates a cohesive, unified pet care management hub for pet parents, eliminates duplicate notifications, and guarantees review authenticity with strict backend eligibility verification.
 
-
-
-
+### [2026-10-16] Decision 010: Visual Quality, Automated E2E Journeys, Image URL Resilience & Production Readiness
+- **Context:** Section 18, Section 19, and Phase 9 require visual verification across desktop and mobile form factors, automated testing of 9 critical customer journeys, resolution of runtime layout and asset issues, and production hardening:
+  1. **Visual Quality Audit with Real Chromium Browser:**
+     - Automated inspection of 22 key routes across desktop (1440x900) and mobile (390x844) viewports using Playwright (`scripts/audit-e2e.mjs`).
+     - Generated and verified 37 high-resolution screenshots capturing homepage, auth (sign-in/sign-up), grooming, boarding, vet, supplies catalog, PDP, empty cart, full cart with items, checkout, dashboard overview, pets management, bookings timeline, orders list, favourites, and notification popovers.
+     - Confirmed zero HTTP 4xx/5xx network failures and zero unhandled page runtime errors.
+  2. **Image URL Normalization & Safe Fallbacks:**
+     - Next.js `<Image>` requires leading slashes or full URLs; seeded database provider image keys lacking leading slashes caused invalid URL construction errors.
+     - Implemented `resolveImageSrc` utility in `apps/web/src/lib/images.ts` that safely prepends slashes, passes through external URLs, and supplies theme-appropriate fallbacks for grooming, boarding, vet, and pet avatars.
+     - Updated `ProviderCard`, `ProductCard`, and provider detail pages with safe image resolution.
+     - Cleaned up obsolete test products from the supplies catalog via `apps/api/scripts/cleanup.ts`.
+  3. **Automated 9-Journey End-to-End Test Suite:**
+     - Developed `scripts/test-all-journeys.mjs` validating all 9 required customer workflows:
+       1. Sign Up, Sign In, Verify `/me`, Sign Out, and Session Invalidation.
+       2. Pet Profile creation, size tier auto-derivation, weight update, and core vaccination records (Rabies, DHPP, Bordetella).
+       3. Dynamic slot-based booking for Grooming (`PN-GRM-`), Boarding (`PN-BND-`), and Veterinary Care with emergency disclaimer (`PN-VET-`).
+       4. Supplies catalog search, in-stock variant discovery, cart line additions, and subtotal/shipping/tax calculation.
+       5. Stock reservation, clearly marked demo checkout (`DEMO_PLACED`, paymentMode: `DEMO`), and order history verification.
+       6. Favourites persistence for providers and products via `/me/favourites`.
+       7. Notification centre event tracking, unread badges, and atomic mark-all-read.
+       8. Review eligibility gate: rejection of premature reviews (`422 VALIDATION_FAILED`), status advancement to `COMPLETED`, reflection submission (`201`), and duplicate rejection (`409 CONFLICT`).
+       9. Cross-user privacy isolation: verifying Customer B receives `404 Not Found` when attempting to access or review Customer A's pets, bookings, and orders.
+  4. **Production Hardening & Verification:**
+     - Workspace typecheck passed with zero errors across all projects (`pnpm -r typecheck`).
+     - Complete test suite passed 118 / 118 tests across `apps/api` and `apps/web` (`pnpm -r test`).
+     - Clean Next.js 15.5 production build emitting all 25 static and dynamic routes (`pnpm --filter web build`).
+- **Reason:** Guarantees absolute reliability, authentic demo transparency, responsive visual excellence, and ironclad cross-user data isolation across the entire PawNest platform.

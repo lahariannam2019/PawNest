@@ -18,8 +18,9 @@
     "db:start": "pnpm --filter api db:start"
   },
   "devDependencies": {
+    "playwright": "^1.64.1",
+    "prettier": "^3.5.3",
     "turbo": "^2.4.4",
-    "typescript": "^5.8.2",
-    "prettier": "^3.5.3"
+    "typescript": "^5.8.2"
   }
 }
