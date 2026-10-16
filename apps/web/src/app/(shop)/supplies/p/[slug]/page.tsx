@@ -21,6 +21,7 @@ import { Footer } from '../../../../../components/layout/Footer';
 import { Container } from '../../../../../components/layout/Container';
 import { Badge } from '../../../../../components/ui/Badge';
 import { Button } from '../../../../../components/ui/Button';
+import { FavouriteButton } from '../../../../../components/ui/FavouriteButton';
 import { ProductViewer3D } from '../../../../../components/supplies/ProductViewer3D';
 import { useCart } from '../../../../../lib/cart/CartContext';
 import { useAuth } from '../../../../../lib/auth/AuthContext';
@@ -355,6 +356,8 @@ export default function ProductDetailPage() {
                   <ShoppingBag className="w-4 h-4 mr-2" />
                   {isAdding ? 'Adding to Cart...' : isOutOfStock ? 'Sold Out' : 'Add to Cart'}
                 </Button>
+
+                <FavouriteButton kind="PRODUCT" id={product.id} size="lg" />
               </div>
 
               {/* Value Props & Shipping Guarantees */}

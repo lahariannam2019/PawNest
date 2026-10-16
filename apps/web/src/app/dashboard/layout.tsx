@@ -14,7 +14,9 @@ import {
   LogOut,
   ChevronRight,
   ArrowLeft,
+  Heart,
 } from 'lucide-react';
+import { NotificationBell } from '../../components/notifications/NotificationBell';
 
 export default function DashboardLayout({
   children,
@@ -54,6 +56,7 @@ export default function DashboardLayout({
     { href: '/dashboard/bookings', label: 'Bookings & Stays', icon: Calendar },
     { href: '/dashboard/appointments', label: 'Vet Visits', icon: Stethoscope },
     { href: '/dashboard/orders', label: 'Order History', icon: ShoppingBag },
+    { href: '/dashboard/favourites', label: 'Saved Favourites', icon: Heart },
     { href: '/dashboard/settings', label: 'Account Settings', icon: Settings },
   ];
 
@@ -81,6 +84,7 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <Link
               href="/"
               className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-charcoal-600)] hover:text-[var(--color-charcoal-900)] transition-colors px-2.5 py-1 rounded-full hover:bg-[var(--color-ivory-200)]"

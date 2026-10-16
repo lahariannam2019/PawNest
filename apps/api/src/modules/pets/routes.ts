@@ -14,72 +14,72 @@ import {
   ErrorCode,
 } from '@pawnest/shared';
 
+// Helper to format pet DTO with signed avatar URL and computed vaccine status
+export async function formatPetDto(pet: any) {
+  let avatarUrl: string | null = null;
+  if (pet.avatarKey) {
+    avatarUrl = await storageAdapter.getSignedDownloadUrl(pet.avatarKey);
+  }
+
+  const vaccinations = (pet.vaccinations || []).map((v: any) => ({
+    id: v.id,
+    petId: v.petId,
+    name: v.name,
+    administeredOn: v.administeredOn.toISOString(),
+    expiresOn: v.expiresOn ? v.expiresOn.toISOString() : null,
+    vetName: v.vetName,
+    notes: v.notes,
+    status: getVaccineStatus(v.expiresOn),
+  }));
+
+  // Overall vaccination status for the pet
+  let overallVaccineStatus: typeof VaccinationStatus[keyof typeof VaccinationStatus] =
+    VaccinationStatus.UP_TO_DATE;
+
+  if (vaccinations.length === 0) {
+    overallVaccineStatus = VaccinationStatus.DUE_SOON;
+  } else {
+    const hasExpired = vaccinations.some((v: any) => v.status === VaccinationStatus.EXPIRED);
+    const hasDueSoon = vaccinations.some((v: any) => v.status === VaccinationStatus.DUE_SOON);
+    if (hasExpired) {
+      overallVaccineStatus = VaccinationStatus.EXPIRED;
+    } else if (hasDueSoon) {
+      overallVaccineStatus = VaccinationStatus.DUE_SOON;
+    }
+  }
+
+  return {
+    id: pet.id,
+    userId: pet.userId,
+    name: pet.name,
+    species: pet.species,
+    breed: pet.breed,
+    sex: pet.sex,
+    birthDate: pet.birthDate ? pet.birthDate.toISOString() : null,
+    approxAgeMonths: pet.approxAgeMonths,
+    weightKg: pet.weightKg ? Number(pet.weightKg) : null,
+    sizeTier: pet.sizeTier,
+    neutered: pet.neutered,
+    microchipId: pet.microchipId,
+    allergies: pet.allergies,
+    conditions: pet.conditions,
+    medications: pet.medications,
+    temperament: pet.temperament,
+    fears: pet.fears,
+    notes: pet.notes,
+    vetClinicName: pet.vetClinicName,
+    avatarKey: pet.avatarKey,
+    avatarUrl,
+    vaccinations,
+    vaccinationStatus: overallVaccineStatus,
+    createdAt: pet.createdAt.toISOString(),
+    updatedAt: pet.updatedAt.toISOString(),
+  };
+}
+
 export const petRoutes: FastifyPluginAsync = async (app) => {
   // All pet routes require authentication
   app.addHook('preHandler', app.authenticate);
-
-  // Helper to format pet DTO with signed avatar URL and computed vaccine status
-  async function formatPetDto(pet: any) {
-    let avatarUrl: string | null = null;
-    if (pet.avatarKey) {
-      avatarUrl = await storageAdapter.getSignedDownloadUrl(pet.avatarKey);
-    }
-
-    const vaccinations = (pet.vaccinations || []).map((v: any) => ({
-      id: v.id,
-      petId: v.petId,
-      name: v.name,
-      administeredOn: v.administeredOn.toISOString(),
-      expiresOn: v.expiresOn ? v.expiresOn.toISOString() : null,
-      vetName: v.vetName,
-      notes: v.notes,
-      status: getVaccineStatus(v.expiresOn),
-    }));
-
-    // Overall vaccination status for the pet
-    let overallVaccineStatus: typeof VaccinationStatus[keyof typeof VaccinationStatus] =
-      VaccinationStatus.UP_TO_DATE;
-
-    if (vaccinations.length === 0) {
-      overallVaccineStatus = VaccinationStatus.DUE_SOON;
-    } else {
-      const hasExpired = vaccinations.some((v: any) => v.status === VaccinationStatus.EXPIRED);
-      const hasDueSoon = vaccinations.some((v: any) => v.status === VaccinationStatus.DUE_SOON);
-      if (hasExpired) {
-        overallVaccineStatus = VaccinationStatus.EXPIRED;
-      } else if (hasDueSoon) {
-        overallVaccineStatus = VaccinationStatus.DUE_SOON;
-      }
-    }
-
-    return {
-      id: pet.id,
-      userId: pet.userId,
-      name: pet.name,
-      species: pet.species,
-      breed: pet.breed,
-      sex: pet.sex,
-      birthDate: pet.birthDate ? pet.birthDate.toISOString() : null,
-      approxAgeMonths: pet.approxAgeMonths,
-      weightKg: pet.weightKg ? Number(pet.weightKg) : null,
-      sizeTier: pet.sizeTier,
-      neutered: pet.neutered,
-      microchipId: pet.microchipId,
-      allergies: pet.allergies,
-      conditions: pet.conditions,
-      medications: pet.medications,
-      temperament: pet.temperament,
-      fears: pet.fears,
-      notes: pet.notes,
-      vetClinicName: pet.vetClinicName,
-      avatarKey: pet.avatarKey,
-      avatarUrl,
-      vaccinations,
-      vaccinationStatus: overallVaccineStatus,
-      createdAt: pet.createdAt.toISOString(),
-      updatedAt: pet.updatedAt.toISOString(),
-    };
-  }
 
   // GET /pets — List own pets
   app.get('/pets', async (request) => {

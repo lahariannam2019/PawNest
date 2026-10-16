@@ -932,3 +932,160 @@ export interface CheckoutSessionResult {
   checkoutUrl?: string;
   demoToken?: string;
 }
+
+// ==========================================
+// PHASE 8: DASHBOARD, NOTIFICATIONS & REVIEWS
+// ==========================================
+
+export const ToggleFavouriteSchema = z.object({
+  kind: z.enum([FavouriteKind.PROVIDER, FavouriteKind.PRODUCT]),
+  id: z.string().min(1, 'Target ID is required'),
+});
+export type ToggleFavouriteInput = z.infer<typeof ToggleFavouriteSchema>;
+
+export interface FavouriteSummary {
+  id: string;
+  kind: FavouriteKind;
+  createdAt: string;
+  providerId?: string | null;
+  productId?: string | null;
+  provider?: {
+    id: string;
+    slug: string;
+    type: ProviderType;
+    name: string;
+    tagline?: string | null;
+    addressLine: string;
+    city: string;
+    ratingAvg: number;
+    ratingCount: number;
+    imageKeys: string[];
+    isDemo: boolean;
+  } | null;
+  product?: {
+    id: string;
+    slug: string;
+    name: string;
+    brand: string;
+    minPriceCents: number;
+    imageKeys: string[];
+    ratingAvg: number;
+    ratingCount: number;
+    isDemo: boolean;
+  } | null;
+}
+
+export interface NotificationSummary {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  linkUrl?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListResponse {
+  items: NotificationSummary[];
+  unreadCount: number;
+  total: number;
+}
+
+export const CreateProviderReviewSchema = z.object({
+  bookingId: z.string().min(1, 'Booking ID is required'),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().max(100).optional(),
+  body: z.string().max(2000).optional(),
+});
+export type CreateProviderReviewInput = z.infer<typeof CreateProviderReviewSchema>;
+
+export interface ProviderReviewSummary {
+  id: string;
+  userId: string;
+  userName: string;
+  providerId: string;
+  bookingId: string;
+  rating: number;
+  title?: string | null;
+  body?: string | null;
+  isSample: boolean;
+  createdAt: string;
+}
+
+export interface EligibleBookingForReview {
+  id: string;
+  reference: string;
+  providerId: string;
+  providerName: string;
+  providerSlug: string;
+  petName: string;
+  serviceName?: string | null;
+  startsAt: string;
+  endsAt: string;
+  hasReview: boolean;
+}
+
+export const AdminUpdateBookingStatusSchema = z.object({
+  status: z.enum([
+    BookingStatus.PENDING,
+    BookingStatus.CONFIRMED,
+    BookingStatus.COMPLETED,
+    BookingStatus.CANCELLED,
+    BookingStatus.NO_SHOW,
+  ]),
+  notes: z.string().optional(),
+});
+export type AdminUpdateBookingStatusInput = z.infer<typeof AdminUpdateBookingStatusSchema>;
+
+export interface TimelineEvent {
+  id: string;
+  type: 'GROOMING' | 'BOARDING' | 'VET' | 'ORDER';
+  title: string;
+  subtitle: string;
+  date: string;
+  status: string;
+  statusLabel: string;
+  linkUrl: string;
+  isUpcoming: boolean;
+  badgeVariant: 'default' | 'success' | 'warning' | 'error' | 'outline' | 'demo';
+  petName?: string;
+  petAvatarKey?: string | null;
+  totalCents?: number;
+  reference?: string;
+}
+
+export interface DashboardSummary {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  counts: {
+    petsCount: number;
+    activeBookingsCount: number;
+    completedBookingsCount: number;
+    activeOrdersCount: number;
+    unreadNotificationsCount: number;
+    favouritesCount: number;
+  };
+  upcomingBookings: Array<{
+    id: string;
+    reference: string;
+    kind: BookingKind;
+    status: BookingStatus;
+    startsAt: string;
+    endsAt: string;
+    priceCents: number;
+    providerName: string;
+    providerSlug: string;
+    petName: string;
+    petAvatarKey?: string | null;
+    serviceName?: string | null;
+    boardingUnitName?: string | null;
+  }>;
+  recentOrders: OrderSummary[];
+  pets: PetSummary[];
+  recentNotifications: NotificationSummary[];
+  timeline: TimelineEvent[];
+}
+

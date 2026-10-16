@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
+import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { apiFetch } from '@/lib/api/client';
 import { ProviderSummary, ServiceSummary, ReviewSummary } from '@pawnest/shared';
 import {
@@ -176,6 +177,7 @@ export default function ProviderDetailPage() {
                   Book an Appointment
                 </Button>
               </Link>
+              <FavouriteButton kind="PROVIDER" id={provider.id} size="lg" />
             </div>
           </div>
 

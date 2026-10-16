@@ -3,6 +3,47 @@
 All notable changes to the PawNest platform will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and conventional commits.
 
+## [Phase 8: Dashboard Unification & Notifications] - 2026-10-15
+### Added
+- **Database-Driven Dashboard Overview API (`apps/api/src/modules/dashboard`):**
+  - `GET /dashboard/summary`: Single authoritative endpoint returning user profile glance, accurate database counts (`petsCount`, `activeBookingsCount`, `completedBookingsCount`, `activeOrdersCount`, `unreadNotificationsCount`, `favouritesCount`), upcoming bookings, recent orders, companions carousel with vaccination statuses/reminders, recent notifications, and chronologically merged unified timeline events across Grooming (`GROOMING`), Boarding (`BOARDING`), Veterinary Consultations (`VET`), and Supply Orders (`SUPPLIES`).
+- **Favourites Persistence & Management API (`apps/api/src/modules/favourites`):**
+  - Updated Prisma schema with polymorphic relations (`Favourite` relates to `Provider` and `Product`).
+  - `GET /me/favourites`: Fetch full user saved favourites with populated provider and product summaries.
+  - `GET /me/favourites/ids`: Quick lookup set for client-side active heart status.
+  - `POST /me/favourites`: Toggle favourite item with `ToggleFavouriteSchema`.
+  - `PUT /me/favourites/:kind/:id` & `DELETE /me/favourites/:kind/:id`: Explicit idempotent endpoints.
+- **Notification Centre & Rolling-Window Deduplication (`apps/api/src/modules/notifications`):**
+  - `GET /notifications`: Paginated in-app notification list supporting `unreadOnly` filter.
+  - `POST /notifications/:id/read`: Mark single notification as read.
+  - `POST /notifications/read-all`: Mark all notifications as read atomically.
+  - `createNotificationSafely` Helper: Deduplicates repetitive notifications across rolling time windows (default 24h) to avoid spamming pet parents with duplicate vaccination or booking status alerts.
+- **Authoritative Review Eligibility Subsystem (`apps/api/src/modules/reviews`):**
+  - `GET /me/reviewable`: Returns list of past completed bookings eligible for review.
+  - `POST /providers/:slug/reviews`: Enforces strict Section 17 business rules:
+    - Verifies booking exists and belongs to the authenticated user (`404` if not found).
+    - Verifies booking status is strictly `COMPLETED` (`422 BOOKING_NOT_COMPLETED` for `PENDING`, `CONFIRMED`, `CANCELLED`).
+    - Verifies no existing review exists for the booking (`409 ALREADY_REVIEWED`).
+    - Atomically updates aggregate provider review ratings (`ratingAvg`, `ratingCount`).
+    - Dispatches celebratory in-app notification using `createNotificationSafely`.
+  - `PATCH /admin/bookings/:id/status`: Admin route for testing and advancing booking status lifecycle.
+- **Frontend Dashboard Redesign & Components (`apps/web`):**
+  - Overview Workspace (`/dashboard`): Greeting banner, quick 4-metric counter grid, vaccination reminder alert banner, completed visit review prompt banner, quick care actions, filterable unified timeline (All, Appointments, Stays, Orders), and companions carousel.
+  - Saved Favourites Page (`/dashboard/favourites`): Multi-tab viewer (All, Providers, Supplies) with direct removal, live toggle, and empty state illustrations.
+  - Notification Popover (`NotificationBell`): Interactive top-bar bell with live unread counter badge, mark-all-as-read button, and item click-to-read transition.
+  - Review Modal (`ReviewModal`): Elegant 1–5 star rating selector, title, reflection body, and server-side validation feedback.
+  - Booking Detail Page Integration (`/dashboard/bookings/[id]`): Shows `COMPLETED` status badge and "Leave Reflection" trigger opening `ReviewModal` for completed visits; locks cancellation/rescheduling.
+  - Heart Button Integration (`FavouriteButton`): Added to `ProviderCard`, `ProductCard`, and provider/product detail pages (`grooming/[slug]`, `boarding/[slug]`, `vet/[slug]`, `supplies/p/[slug]`) with optimistic updates and event propagation control.
+- **Comprehensive Automated Test Suite (`apps/api/src/modules/dashboard/dashboard.test.ts`):**
+  - 16 end-to-end integration tests covering dashboard counts, timeline aggregation & ordering, favourites toggle/list/delete, notification mark-read/read-all/deduplication, review eligibility rejection on pending/confirmed bookings, review duplicate rejection, cross-user isolation, and rating recalculation.
+
+### Verified
+- **Monorepo Test Suite:** 102/102 backend tests passing (including 16 Phase 8 dashboard tests, Phase 7 concurrency locks & webhooks, Phase 6 vet triage & pg-boss reminders, Phase 5 boarding transactions, Phase 4 grooming availability). 16/16 frontend unit tests passing. Total: 118 passing tests.
+- **Monorepo Typecheck:** `pnpm -r typecheck` passed with 0 errors across `@pawnest/shared`, `@pawnest/api`, and `@pawnest/web`.
+- **Production Build:** `next build` succeeded with 25/25 static and dynamic routes compiled without errors.
+
+---
+
 ## [Phase 7: Supplies, Cart, Checkout & Orders] - 2026-10-15
 ### Added
 - **Product Catalogue, Variants & Seed Dataset (`apps/api/prisma/seed`):**

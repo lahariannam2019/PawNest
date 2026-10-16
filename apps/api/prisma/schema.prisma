@@ -230,6 +230,7 @@ model Provider {
   units             BoardingUnit[]
   bookings          Booking[]
   reviews           Review[]
+  favourites        Favourite[]
 
   @@index([type, city])
   @@index([lat, lng])
@@ -373,6 +374,7 @@ model Product {
   category    Category         @relation(fields: [categoryId], references: [id])
   variants    ProductVariant[]
   reviews     ProductReview[]
+  favourites  Favourite[]
 
   @@index([categoryId, isActive])
 }
@@ -477,6 +479,8 @@ model Favourite {
   productId  String?
   createdAt  DateTime      @default(now())
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   Provider?     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  product    Product?      @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, kind, providerId, productId])
 }

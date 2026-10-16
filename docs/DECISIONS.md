@@ -95,5 +95,39 @@ This document records technical and design decisions made during the implementat
 - **Decision:** Implemented Prisma models (`Category`, `Product`, `ProductVariant`, `ProductReview`, `Cart`, `CartItem`, `Order`, `OrderItem`), Fastify routes (`/products`, `/cart`, `/checkout`, `/orders`), pluggable `PaymentProvider` (`DemoPaymentProvider`, `StripePaymentProvider`), Next.js `CartContext`, slide-over `CartDrawer`, `ProductViewer3D`, and responsive storefront pages (`/supplies`, `/supplies/p/[slug]`, `/cart`, `/checkout`, `/dashboard/orders`).
 - **Reason:** Guarantees zero overselling under heavy concurrent checkouts, ensures financial and inventory integrity, provides a seamless guest-to-member shopping transition, and strictly respects demo data transparency.
 
+---
+
+### [2026-10-15] Decision 009: Dashboard Unification, Unified Care Timeline, Notification Deduplication & Review Eligibility Guard
+- **Context:** Section 9.6, Section 10.3, Section 17, and Phase 8 require a unified pet parent dashboard, centralized notification centre, favourites persistence, and strict review submission eligibility:
+  1. **Database-Driven Dashboard Overview (`GET /dashboard/summary`):** Must provide single-roundtrip authoritative data for the logged-in user:
+     - Profile greeting with registered pets count, active bookings count, completed visits count, active orders count, unread notifications count, and saved favourites count.
+     - Urgent vaccination reminders computed using the shared rules (`validateBoardingVaccines` and `derivePetVaccinationStatus`).
+     - Review prompts for completed bookings that haven't been reviewed yet.
+     - Companions overview cards with vaccination status indicators.
+     - Unified chronologically sorted timeline aggregating events across all 4 care pillars: Grooming Bookings (`GROOMING`), Boarding Reservations (`BOARDING`), Veterinary Consultations (`VET`), and Supply Orders (`SUPPLIES`).
+  2. **Favourites System (`/me/favourites`):**
+     - Polymorphic favourite persistence for providers (`kind: 'PROVIDER'`) and products (`kind: 'PRODUCT'`).
+     - Dedicated endpoints for fetching all favourites (`GET /me/favourites`), quick ID lookup sets (`GET /me/favourites/ids`), toggle persistence (`POST /me/favourites`), and RESTful idempotent manipulation (`PUT/DELETE /me/favourites/:kind/:id`).
+     - Animated client-side `FavouriteButton` with optimistic updates, auth-redirect for guests, and event bubbling prevention so nested card links are not accidentally triggered.
+  3. **Notification Centre & Rolling-Window Deduplication (`/notifications`):**
+     - Real-time unread badge count with `GET /notifications` supporting `unreadOnly` filter and pagination.
+     - `POST /notifications/:id/read` and `POST /notifications/read-all` for state updates.
+     - Deduplication helper `createNotificationSafely` preventing spam notifications (e.g. repeated vaccination reminders or duplicated status changes) within rolling time windows (default 24 hours).
+     - Interactive `NotificationBell` with popover, instant read toggle, and relative time formatting.
+  4. **Strict Review Eligibility Enforcement (`POST /providers/:slug/reviews`):**
+     - Per plan Section 17, reviews can only be submitted if the user has an actual completed booking (`status === 'COMPLETED'`) with the target provider.
+     - Uncompleted bookings (`PENDING`, `CONFIRMED`, `CANCELLED`) are rejected with `422 Unprocessable Entity` (`BOOKING_NOT_COMPLETED`).
+     - Duplicate reviews for the same booking are rejected with `409 Conflict` (`ALREADY_REVIEWED`).
+     - Cross-user bookings are rejected with `404 Not Found` (`BOOKING_NOT_FOUND`).
+     - Successful reviews recalculate provider aggregate ratings (`ratingAvg`, `ratingCount`) atomically and create an in-app celebratory notification via `createNotificationSafely`.
+     - Added `PATCH /admin/bookings/:id/status` to advance booking status (e.g. to `COMPLETED`) for lifecycle progression testing.
+- **Decision:**
+  1. Updated Prisma schema relations connecting `Provider` and `Product` to `Favourite`.
+  2. Implemented dedicated Fastify modules: `dashboard`, `favourites`, `notifications`, and `reviews`.
+  3. Built comprehensive automated test suite (`dashboard.test.ts`) verifying summary counts, unified timeline ordering, favourites CRUD, notification read states & deduplication, and review eligibility rejection.
+  4. Built responsive Next.js frontend pages and components: `/dashboard`, `/dashboard/favourites`, `NotificationBell`, `ReviewModal`, and integrated `FavouriteButton` across provider/product cards and detail pages.
+- **Reason:** Creates a cohesive, unified pet care management hub for pet parents, eliminates duplicate notifications, and guarantees review authenticity with strict backend eligibility verification.
+
+
 
 

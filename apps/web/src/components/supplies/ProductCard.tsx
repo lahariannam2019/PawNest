@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Star, ShoppingBag, Eye, ArrowRight } from 'lucide-react';
 import { ProductListItemSummary } from '@pawnest/shared';
 import { Badge } from '../ui/Badge';
+import { FavouriteButton } from '../ui/FavouriteButton';
 
 export function ProductCard({ product }: { product: ProductListItemSummary }) {
   const isPriceRange = product.minPriceCents !== product.maxPriceCents;
@@ -44,6 +45,11 @@ export function ProductCard({ product }: { product: ProductListItemSummary }) {
               Out of Stock
             </span>
           )}
+        </div>
+
+        {/* Favourite Button */}
+        <div className="absolute top-3 right-3 z-20">
+          <FavouriteButton kind="PRODUCT" id={product.id} size="sm" />
         </div>
 
         {/* Quick View Pill on Hover */}

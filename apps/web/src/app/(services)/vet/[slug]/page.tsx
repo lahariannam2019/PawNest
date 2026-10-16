@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
+import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { apiFetch } from '@/lib/api/client';
 import { ProviderSummary, ServiceSummary, ReviewSummary, EMERGENCY_DISCLAIMER_TEXT } from '@pawnest/shared';
 import {
@@ -165,6 +166,7 @@ export default function VetDetailPage({ params }: VetDetailPageProps) {
                   <span>{provider.ratingAvg.toFixed(2)}</span>
                   <span className="text-charcoal-400 font-normal">({provider.ratingCount} verified visits)</span>
                 </div>
+                <FavouriteButton kind="PROVIDER" id={provider.id} size="sm" />
               </div>
 
               <h1 className="text-3xl md:text-5xl font-serif font-bold text-charcoal-900 leading-tight">

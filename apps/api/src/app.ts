@@ -24,6 +24,10 @@ import { bookingRoutes } from './modules/bookings/routes.js';
 import { productRoutes } from './modules/products/routes.js';
 import { cartRoutes } from './modules/cart/routes.js';
 import { orderRoutes } from './modules/orders/routes.js';
+import { dashboardRoutes } from './modules/dashboard/routes.js';
+import { favouriteRoutes } from './modules/favourites/routes.js';
+import { notificationRoutes } from './modules/notifications/routes.js';
+import { reviewRoutes } from './modules/reviews/routes.js';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -199,6 +203,10 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
       v1.register(productRoutes);
       v1.register(cartRoutes);
       v1.register(orderRoutes);
+      v1.register(dashboardRoutes);
+      v1.register(favouriteRoutes);
+      v1.register(notificationRoutes);
+      v1.register(reviewRoutes);
     },
     { prefix: '/api/v1' }
   );

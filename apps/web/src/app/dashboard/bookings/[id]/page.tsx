@@ -7,6 +7,7 @@ import { apiFetch } from '@/lib/api/client';
 import { BookingSummary, BookingStatus, AvailabilitySlot } from '@pawnest/shared';
 import { Button } from '@/components/ui/Button';
 import { SlotPicker } from '@/components/booking/SlotPicker';
+import { ReviewModal } from '@/components/reviews/ReviewModal';
 import {
   Calendar,
   Clock,
@@ -20,6 +21,7 @@ import {
   CheckCircle2,
   XCircle,
   Scissors,
+  Star,
 } from 'lucide-react';
 
 export default function BookingDetailPage() {
@@ -45,6 +47,10 @@ export default function BookingDetailPage() {
   const [newSlot, setNewSlot] = useState<AvailabilitySlot | null>(null);
   const [rescheduling, setRescheduling] = useState(false);
   const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+
+  // Review Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
     if (!bookingId) return;
@@ -188,6 +194,8 @@ export default function BookingDetailPage() {
                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                   booking.status === 'CONFIRMED'
                     ? 'bg-sage-100 text-sage-800'
+                    : booking.status === 'COMPLETED'
+                    ? 'bg-emerald-100 text-emerald-800'
                     : booking.status === 'CANCELLED'
                     ? 'bg-peach-100 text-peach-800'
                     : 'bg-ivory-200 text-charcoal-700'
@@ -211,8 +219,27 @@ export default function BookingDetailPage() {
             </h1>
           </div>
 
-          {/* Action buttons if not cancelled */}
-          {booking.status !== 'CANCELLED' && (
+          {/* Action buttons */}
+          {booking.status === 'COMPLETED' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {reviewSubmitted ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  Reflection Shared
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowReviewModal(true)}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  Leave Reflection
+                </Button>
+              )}
+            </div>
+          ) : booking.status !== 'CANCELLED' ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="secondary"
@@ -229,7 +256,7 @@ export default function BookingDetailPage() {
                 Cancel {booking.kind === 'BOARDING' ? 'Reservation' : 'Appointment'}
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Boarding Stay Timeline (if kind === BOARDING) */}
@@ -623,6 +650,20 @@ export default function BookingDetailPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Review & Reflection Modal */}
+      {booking && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          bookingId={booking.id}
+          providerSlug={booking.providerSlug}
+          providerName={booking.providerName}
+          onSuccess={() => {
+            setReviewSubmitted(true);
+          }}
+        />
       )}
     </div>
   );

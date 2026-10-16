@@ -7,6 +7,7 @@ import { ProviderSummary } from '@pawnest/shared';
 import { Star, MapPin, Sparkles, Clock, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { FavouriteButton } from '@/components/ui/FavouriteButton';
 
 interface ProviderCardProps {
   provider: ProviderSummary;
@@ -57,6 +58,11 @@ export function ProviderCard({ provider }: ProviderCardProps) {
             </span>
           </div>
         )}
+
+        {/* Favourite Button */}
+        <div className="absolute top-3 right-3 z-10">
+          <FavouriteButton kind="PROVIDER" id={provider.id} size="sm" />
+        </div>
 
         {/* Rating Pill */}
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-charcoal-900 text-xs font-medium shadow-xs">

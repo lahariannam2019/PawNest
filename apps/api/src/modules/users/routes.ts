@@ -206,38 +206,5 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
     await repo.addresses.delete(id);
     return { success: true };
   });
-
-  // GET /dashboard/summary
-  app.get('/dashboard/summary', async (request) => {
-    const userId = request.user!.userId;
-
-    const [upcomingBookings, pets, recentOrders, unreadCount] = await Promise.all([
-      prisma.booking.findMany({
-        where: { userId, startsAt: { gte: new Date() }, status: { not: 'CANCELLED' } },
-        orderBy: { startsAt: 'asc' },
-        take: 3,
-        include: { pet: true, provider: true },
-      }),
-      prisma.pet.findMany({
-        where: { userId, deletedAt: null },
-        include: { vaccinations: true },
-      }),
-      prisma.order.findMany({
-        where: { userId },
-        orderBy: { placedAt: 'desc' },
-        take: 3,
-        include: { items: true },
-      }),
-      prisma.notification.count({
-        where: { userId, readAt: null },
-      }),
-    ]);
-
-    return {
-      upcomingBookings,
-      pets,
-      recentOrders,
-      unreadNotifications: unreadCount,
-    };
-  });
 };
+
