@@ -28,6 +28,7 @@ import { dashboardRoutes } from './modules/dashboard/routes.js';
 import { favouriteRoutes } from './modules/favourites/routes.js';
 import { notificationRoutes } from './modules/notifications/routes.js';
 import { reviewRoutes } from './modules/reviews/routes.js';
+import { runSeed } from './seed/seed.js';
 
 export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   const app = fastify({
@@ -238,6 +239,27 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
           mode: process.env.PAYMENT_MODE || 'demo',
           isDemo: true,
         };
+      });
+
+      v1.post('/admin/seed', async (_request, reply) => {
+        try {
+          const categoryCount = await prisma.category.count();
+          if (categoryCount === 0) {
+            await runSeed(prisma);
+          }
+          const finalCategories = await prisma.category.count();
+          const finalProducts = await prisma.product.count();
+          return {
+            status: 'success',
+            categories: finalCategories,
+            products: finalProducts,
+          };
+        } catch (err: any) {
+          return reply.status(500).send({
+            status: 'error',
+            message: err.message,
+          });
+        }
       });
 
       // Register auth, user, pet, upload, provider, and booking route modules

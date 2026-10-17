@@ -19,32 +19,11 @@ const app = buildApp({
       : true,
 });
 
-import { execSync } from 'node:child_process';
-import path from 'node:path';
-import fs from 'node:fs';
 import { prisma } from './lib/prisma.js';
 import { runSeed } from './seed/seed.js';
 import { initBoss, stopBoss } from './jobs/reminders.js';
 
 async function ensureDatabaseInitialized() {
-  const apiDir = fs.existsSync(path.resolve(process.cwd(), 'prisma/schema.prisma'))
-    ? process.cwd()
-    : fs.existsSync(path.resolve(process.cwd(), 'apps/api/prisma/schema.prisma'))
-    ? path.resolve(process.cwd(), 'apps/api')
-    : process.cwd();
-
-  try {
-    console.log('🔄 Checking / applying database migrations on startup...');
-    execSync('npx prisma migrate deploy', {
-      cwd: apiDir,
-      stdio: 'inherit',
-      env: process.env,
-    });
-    console.log('✅ Database migrations verified.');
-  } catch (err: any) {
-    console.error('⚠️ Database migration check failed during startup:', err.message);
-  }
-
   try {
     const categoryCount = await prisma.category.count();
     if (categoryCount === 0) {
@@ -54,7 +33,7 @@ async function ensureDatabaseInitialized() {
       const newProductCount = await prisma.product.count();
       console.log(`✅ PawNest data seeded successfully! Categories: ${newCategoryCount}, Products: ${newProductCount}`);
     } else {
-      console.log(`📦 Database already seeded (${categoryCount} categories present). Skipping seed.`);
+      console.log(`📦 Database already seeded (${categoryCount} categories present).`);
     }
   } catch (err: any) {
     console.error('⚠️ Database seed check failed during startup:', err.message);
