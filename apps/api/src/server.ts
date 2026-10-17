@@ -23,6 +23,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { prisma } from './lib/prisma.js';
+import { runSeed } from './seed/seed.js';
 import { initBoss, stopBoss } from './jobs/reminders.js';
 
 async function ensureDatabaseInitialized() {
@@ -47,12 +48,8 @@ async function ensureDatabaseInitialized() {
   try {
     const categoryCount = await prisma.category.count();
     if (categoryCount === 0) {
-      console.log('🌱 Database has 0 categories. Seeding initial PawNest catalogue and demo data...');
-      execSync('npx tsx prisma/seed/seed.ts', {
-        cwd: apiDir,
-        stdio: 'inherit',
-        env: { ...process.env, ALLOW_SEED_IN_PRODUCTION: 'true' },
-      });
+      console.log('🌱 Database has 0 categories. Seeding initial PawNest catalogue and demo data in-process...');
+      await runSeed(prisma);
       const newCategoryCount = await prisma.category.count();
       const newProductCount = await prisma.product.count();
       console.log(`✅ PawNest data seeded successfully! Categories: ${newCategoryCount}, Products: ${newProductCount}`);
