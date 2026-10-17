@@ -8,7 +8,7 @@ export async function runSeed(prismaClient?: PrismaClient) {
   const prisma = prismaClient || defaultPrisma;
   console.log('Seeding PawNest database...');
 
-  // Ensure schema compatibility for Booking table
+  // Ensure schema compatibility for Booking, ProductVariant, and ProductReview
   await prisma.$executeRawUnsafe(`
     ALTER TABLE "Booking" 
     ADD COLUMN IF NOT EXISTS "emergencyAcknowledged" BOOLEAN NOT NULL DEFAULT false,
@@ -16,6 +16,29 @@ export async function runSeed(prismaClient?: PrismaClient) {
     ADD COLUMN IF NOT EXISTS "reminderJobId" TEXT;
   `).catch((e: any) => {
     console.warn('Could not run raw alter table for Booking:', e.message);
+  });
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "ProductVariant" ADD COLUMN IF NOT EXISTS "weightGrams" INTEGER;
+  `).catch((e: any) => {
+    console.warn('Could not run raw alter table for ProductVariant:', e.message);
+  });
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "ProductReview" (
+      "id" TEXT NOT NULL,
+      "productId" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "rating" INTEGER NOT NULL,
+      "title" TEXT,
+      "body" TEXT NOT NULL,
+      "isSample" BOOLEAN NOT NULL DEFAULT false,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "ProductReview_pkey" PRIMARY KEY ("id")
+    );
+    CREATE INDEX IF NOT EXISTS "ProductReview_productId_createdAt_idx" ON "ProductReview"("productId", "createdAt");
+  `).catch((e: any) => {
+    console.warn('Could not run raw create table for ProductReview:', e.message);
   });
 
   // 1. Users

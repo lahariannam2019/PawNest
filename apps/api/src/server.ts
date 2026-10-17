@@ -25,15 +25,15 @@ import { initBoss, stopBoss } from './jobs/reminders.js';
 
 async function ensureDatabaseInitialized() {
   try {
-    const categoryCount = await prisma.category.count();
-    if (categoryCount === 0) {
-      console.log('🌱 Database has 0 categories. Seeding initial PawNest catalogue and demo data in-process...');
+    const productCount = await prisma.product.count();
+    if (productCount < 10) {
+      console.log(`🌱 Database has ${productCount} products. Seeding initial PawNest catalogue and demo data in-process...`);
       await runSeed(prisma);
       const newCategoryCount = await prisma.category.count();
       const newProductCount = await prisma.product.count();
       console.log(`✅ PawNest data seeded successfully! Categories: ${newCategoryCount}, Products: ${newProductCount}`);
     } else {
-      console.log(`📦 Database already seeded (${categoryCount} categories present).`);
+      console.log(`📦 Database already seeded (${productCount} products present).`);
     }
   } catch (err: any) {
     console.error('⚠️ Database seed check failed during startup:', err.message);

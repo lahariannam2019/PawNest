@@ -243,8 +243,8 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       v1.post('/admin/seed', async (_request, reply) => {
         try {
-          const categoryCount = await prisma.category.count();
-          if (categoryCount === 0) {
+          const productCount = await prisma.product.count();
+          if (productCount < 10) {
             await runSeed(prisma);
           }
           const finalCategories = await prisma.category.count();
