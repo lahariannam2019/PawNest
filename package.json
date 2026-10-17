@@ -8,6 +8,8 @@
     "build": "turbo run build",
     "build:api": "pnpm --filter api build",
     "start:api": "pnpm --filter api start",
+    "build:web": "pnpm --filter @pawnest/shared build && pnpm --filter web build",
+    "start:web": "pnpm --filter web start",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
