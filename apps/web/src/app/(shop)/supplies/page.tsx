@@ -342,6 +342,31 @@ function SuppliesContent() {
                 </div>
               ))}
             </div>
+          ) : error && products.length === 0 ? (
+            <div className="rounded-[var(--radius-xl)] bg-[var(--color-ivory-50)] border border-red-200 p-12 text-center space-y-4 shadow-sm max-w-lg mx-auto">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto text-red-500">
+                <X className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif text-xl font-medium text-[var(--color-charcoal-900)]">
+                  Unable to load products
+                </h3>
+                <p className="text-xs text-[var(--color-charcoal-600)]">
+                  {error}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setError(null);
+                  setInitialLoading(true);
+                  window.location.reload();
+                }}
+                className="mt-2 text-xs"
+              >
+                Retry Connection
+              </Button>
+            </div>
           ) : products.length === 0 ? (
             <div className="rounded-[var(--radius-xl)] bg-[var(--color-ivory-50)] border border-[var(--color-ivory-300)] p-12 text-center space-y-4 shadow-sm max-w-lg mx-auto">
               <div className="w-16 h-16 rounded-full bg-[var(--color-ivory-200)] flex items-center justify-center mx-auto text-[var(--color-charcoal-400)]">

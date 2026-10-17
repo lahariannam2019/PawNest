@@ -184,6 +184,32 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
   // Base API v1 group
   app.register(
     async (v1) => {
+      v1.get('/health', async () => {
+        return {
+          status: 'pass',
+          timestamp: new Date().toISOString(),
+          service: 'pawnest-api',
+          uptime: process.uptime(),
+        };
+      });
+
+      v1.get('/ready', async (_request, reply) => {
+        try {
+          await prisma.$queryRaw`SELECT 1`;
+          return {
+            status: 'pass',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+          };
+        } catch (err) {
+          return reply.status(503).send({
+            status: 'fail',
+            database: 'disconnected',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      });
+
       v1.get('/info', async () => {
         return {
           name: 'PawNest API',

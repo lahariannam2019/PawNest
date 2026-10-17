@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
-const apiUrl = process.env.API_URL || 'http://localhost:4000';
+const rawApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const apiUrl = rawApiUrl.replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@pawnest/shared'],
