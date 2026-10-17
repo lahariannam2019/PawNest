@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "emergencyAcknowledged" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "reminderSentAt" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "reminderJobId" TEXT;

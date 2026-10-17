@@ -8,6 +8,16 @@ export async function runSeed(prismaClient?: PrismaClient) {
   const prisma = prismaClient || defaultPrisma;
   console.log('Seeding PawNest database...');
 
+  // Ensure schema compatibility for Booking table
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "Booking" 
+    ADD COLUMN IF NOT EXISTS "emergencyAcknowledged" BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "reminderSentAt" TIMESTAMP(3),
+    ADD COLUMN IF NOT EXISTS "reminderJobId" TEXT;
+  `).catch((e: any) => {
+    console.warn('Could not run raw alter table for Booking:', e.message);
+  });
+
   // 1. Users
   const defaultPasswordHash = await hashPassword('P@wnestDemo2026!');
   const adminPasswordHash = await hashPassword('AdminSecret2026!');
