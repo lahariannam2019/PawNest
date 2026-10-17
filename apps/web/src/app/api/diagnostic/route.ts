@@ -3,7 +3,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const rawApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || '';
+  const rawApiUrl =
+    process.env.API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.RAILWAY_SERVICE_API_URL ||
+    (process.env.RAILWAY_ENVIRONMENT ? 'http://api.railway.internal:8080' : '');
   const apiUrl = (rawApiUrl || 'http://localhost:4000').replace(/\/$/, '');
 
   // Collect safe environment variable presence (names only, NEVER values)
