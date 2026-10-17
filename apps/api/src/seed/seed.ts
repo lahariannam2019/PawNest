@@ -10,19 +10,20 @@ export async function runSeed(prismaClient?: PrismaClient) {
 
   // Ensure schema compatibility for Booking, ProductVariant, and ProductReview
   await prisma.$executeRawUnsafe(`
-    ALTER TABLE "Booking" 
-    ADD COLUMN IF NOT EXISTS "emergencyAcknowledged" BOOLEAN NOT NULL DEFAULT false,
-    ADD COLUMN IF NOT EXISTS "reminderSentAt" TIMESTAMP(3),
-    ADD COLUMN IF NOT EXISTS "reminderJobId" TEXT;
-  `).catch((e: any) => {
-    console.warn('Could not run raw alter table for Booking:', e.message);
-  });
+    ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "emergencyAcknowledged" BOOLEAN NOT NULL DEFAULT false;
+  `).catch((e: any) => console.warn('Booking.emergencyAcknowledged:', e.message));
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "reminderSentAt" TIMESTAMP(3);
+  `).catch((e: any) => console.warn('Booking.reminderSentAt:', e.message));
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "reminderJobId" TEXT;
+  `).catch((e: any) => console.warn('Booking.reminderJobId:', e.message));
 
   await prisma.$executeRawUnsafe(`
     ALTER TABLE "ProductVariant" ADD COLUMN IF NOT EXISTS "weightGrams" INTEGER;
-  `).catch((e: any) => {
-    console.warn('Could not run raw alter table for ProductVariant:', e.message);
-  });
+  `).catch((e: any) => console.warn('ProductVariant.weightGrams:', e.message));
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "ProductReview" (
@@ -36,10 +37,27 @@ export async function runSeed(prismaClient?: PrismaClient) {
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "ProductReview_pkey" PRIMARY KEY ("id")
     );
+  `).catch((e: any) => console.warn('ProductReview table:', e.message));
+
+  await prisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS "ProductReview_productId_createdAt_idx" ON "ProductReview"("productId", "createdAt");
-  `).catch((e: any) => {
-    console.warn('Could not run raw create table for ProductReview:', e.message);
-  });
+  `).catch((e: any) => console.warn('ProductReview index:', e.message));
+
+  await prisma.$executeRawUnsafe(`
+    DO $$ BEGIN
+      ALTER TABLE "ProductReview" ADD CONSTRAINT "ProductReview_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `).catch((e: any) => console.warn('ProductReview product fkey:', e.message));
+
+  await prisma.$executeRawUnsafe(`
+    DO $$ BEGIN
+      ALTER TABLE "ProductReview" ADD CONSTRAINT "ProductReview_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `).catch((e: any) => console.warn('ProductReview user fkey:', e.message));
 
   // 1. Users
   const defaultPasswordHash = await hashPassword('P@wnestDemo2026!');
