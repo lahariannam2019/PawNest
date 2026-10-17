@@ -57,7 +57,9 @@ export async function GET() {
         status: res.status,
         ok: res.ok,
         sample:
-          endpoint.name === 'products'
+          !res.ok
+            ? body
+            : endpoint.name === 'products'
             ? { total: body?.total, count: body?.products?.length, firstItem: body?.products?.[0]?.title }
             : endpoint.name === 'categories'
             ? { count: body?.categories?.length, list: body?.categories?.map((c: any) => c.name) }

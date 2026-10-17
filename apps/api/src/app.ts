@@ -163,19 +163,43 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
     };
   });
 
-  // Readiness check (checks database connectivity)
+  const checkDatabase = async () => {
+    await prisma.$queryRaw`SELECT 1`;
+    const tables: any = await prisma.$queryRaw`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `;
+    let productCount: number | null = null;
+    let categoryCount: number | null = null;
+    let tableError: string | null = null;
+    try {
+      productCount = await prisma.product.count();
+      categoryCount = await prisma.category.count();
+    } catch (e: any) {
+      tableError = e.message;
+    }
+    return {
+      status: tableError ? 'warn' : 'pass',
+      database: 'connected',
+      tables: tables.map((t: any) => t.table_name),
+      productCount,
+      categoryCount,
+      tableError,
+      timestamp: new Date().toISOString(),
+    };
+  };
+
+  // Readiness check (checks database connectivity and schema readiness)
   app.get('/ready', async (_request, reply) => {
     try {
-      await prisma.$queryRaw`SELECT 1`;
-      return {
-        status: 'pass',
-        database: 'connected',
-        timestamp: new Date().toISOString(),
-      };
-    } catch (err) {
+      const result = await checkDatabase();
+      return result;
+    } catch (err: any) {
       return reply.status(503).send({
         status: 'fail',
         database: 'disconnected',
+        error: err.message,
         timestamp: new Date().toISOString(),
       });
     }
@@ -195,16 +219,13 @@ export function buildApp(opts: FastifyServerOptions = {}): FastifyInstance {
 
       v1.get('/ready', async (_request, reply) => {
         try {
-          await prisma.$queryRaw`SELECT 1`;
-          return {
-            status: 'pass',
-            database: 'connected',
-            timestamp: new Date().toISOString(),
-          };
-        } catch (err) {
+          const result = await checkDatabase();
+          return result;
+        } catch (err: any) {
           return reply.status(503).send({
             status: 'fail',
             database: 'disconnected',
+            error: err.message,
             timestamp: new Date().toISOString(),
           });
         }
