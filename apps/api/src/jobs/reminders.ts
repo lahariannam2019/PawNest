@@ -8,7 +8,7 @@ const QUEUE_NAME = 'appointment-reminders';
 
 export function getBoss(): PgBoss {
   if (!bossInstance) {
-    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pawnest';
+    const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/pawnest';
     bossInstance = new PgBoss(connectionString);
   }
   return bossInstance;

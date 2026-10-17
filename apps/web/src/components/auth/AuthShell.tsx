@@ -57,10 +57,12 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-charcoal-900)]/60 via-transparent to-transparent flex items-end p-8">
-            <p className="text-white font-serif text-lg leading-relaxed">
-              “One pet profile that makes every grooming and veterinary appointment faster and safer.”
-            </p>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-8">
+            <div className="bg-[#1F2421]/80 backdrop-blur-md rounded-2xl p-5 border border-white/15 shadow-lg w-full">
+              <p className="text-white font-serif text-base sm:text-lg leading-relaxed drop-shadow-sm">
+                “One pet profile that makes every grooming and veterinary appointment faster and safer.”
+              </p>
+            </div>
           </div>
         </div>
       </div>
