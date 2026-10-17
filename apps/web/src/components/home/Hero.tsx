@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Calendar, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Hero3D } from '../media/Hero3D';
 import { SearchComposer } from './SearchComposer';
@@ -60,22 +60,7 @@ export function Hero() {
                 alt="A golden retriever resting peacefully by a sunlit window in morning light"
               />
 
-              {/* Floating Context Chip 1 (Top Left) */}
-              <div className="absolute -top-4 -left-4 sm:-left-8 bg-[var(--color-ivory-50)]/95 backdrop-blur-md border border-[var(--color-ivory-300)] rounded-[var(--radius-lg)] p-3 shadow-[var(--shadow-2)] hidden sm:flex items-center gap-3 animate-bounce [animation-duration:6s]">
-                <div className="w-9 h-9 rounded-full bg-[var(--color-sage-100)] text-[var(--color-sage-700)] flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <div className="text-[11px] font-bold text-[var(--color-charcoal-500)] uppercase tracking-wider">
-                    Next Grooming
-                  </div>
-                  <div className="text-xs font-semibold text-[var(--color-charcoal-900)]">
-                    Tue 10:30 · Brooklyn Spa
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Context Chip 2 (Bottom Right) */}
+              {/* Floating Context Chip (Bottom Right) */}
               <div className="absolute -bottom-4 -right-4 sm:-right-6 bg-[var(--color-ivory-50)]/95 backdrop-blur-md border border-[var(--color-ivory-300)] rounded-[var(--radius-lg)] p-3 shadow-[var(--shadow-2)] flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[var(--color-peach-100)] text-[var(--color-peach-700)] flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4" />

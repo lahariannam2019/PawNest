@@ -9,6 +9,7 @@ import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { apiFetch } from '@/lib/api/client';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { ProviderSummary, ServiceSummary, ReviewSummary, EMERGENCY_DISCLAIMER_TEXT } from '@pawnest/shared';
 import {
   Star,
@@ -36,6 +37,7 @@ interface VetDetailPageProps {
 
 export default function VetDetailPage({ params }: VetDetailPageProps) {
   const { slug } = use(params);
+  const { user } = useAuth();
   const [provider, setProvider] = useState<ProviderSummary | null>(null);
   const [services, setServices] = useState<ServiceSummary[]>([]);
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
@@ -267,7 +269,14 @@ export default function VetDetailPage({ params }: VetDetailPageProps) {
               </div>
 
               <div className="pt-4 border-t border-ivory-200">
-                <Link href={`/book/vet/${provider.slug}`} className="block w-full">
+                <Link
+                  href={
+                    user
+                      ? `/book/vet/${provider.slug}`
+                      : `/auth/sign-in?next=${encodeURIComponent(`/book/vet/${provider.slug}`)}`
+                  }
+                  className="block w-full"
+                >
                   <Button variant="primary" className="w-full py-3 justify-center text-sm font-semibold">
                     Schedule Veterinary Visit
                   </Button>
@@ -326,7 +335,13 @@ export default function VetDetailPage({ params }: VetDetailPageProps) {
                     <span className="text-[11px] text-charcoal-400">
                       Doctor exam & vitals check included
                     </span>
-                    <Link href={`/book/vet/${provider.slug}?serviceId=${service.id}`}>
+                    <Link
+                      href={
+                        user
+                          ? `/book/vet/${provider.slug}?serviceId=${service.id}`
+                          : `/auth/sign-in?next=${encodeURIComponent(`/book/vet/${provider.slug}?serviceId=${service.id}`)}`
+                      }
+                    >
                       <Button variant="secondary" size="sm" className="font-medium text-xs">
                         Book This Visit
                       </Button>
@@ -417,7 +432,15 @@ export default function VetDetailPage({ params }: VetDetailPageProps) {
                           </div>
                           <div>
                             <span className="text-xs font-bold text-charcoal-900 block">{rev.userName}</span>
-                            <span className="text-[10px] text-charcoal-400">Verified Patient</span>
+                            {rev.isSample ? (
+                              <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                Sample Review
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-sage-800 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200">
+                                Verified Patient
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">

@@ -11,17 +11,19 @@ import { ProviderSummary, Species, EMERGENCY_DISCLAIMER_TEXT } from '@pawnest/sh
 import { Sparkles, AlertTriangle, Stethoscope, ShieldCheck, HeartPulse, Loader2, PhoneCall } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+import { getCachedCatalogue, setCachedCatalogue } from '@/lib/api/catalogueCache';
+
 export default function VetPage() {
   const [query, setQuery] = useState('');
   const [species, setSpecies] = useState<Species | undefined>();
   const [city, setCity] = useState<string | undefined>();
   const [minRating, setMinRating] = useState<number | undefined>();
   const [providers, setProviders] = useState<ProviderSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+    const controller = new AbortController();
 
     const params = new URLSearchParams({
       type: 'VET_CLINIC',
@@ -30,27 +32,37 @@ export default function VetPage() {
       ...(city ? { city } : {}),
       ...(minRating ? { minRating: String(minRating) } : {}),
     });
+    const cacheKey = `providers:${params.toString()}`;
 
-    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`)
+    // 1. Instant display from client memory cache (0ms)
+    const cached = getCachedCatalogue<{ items: ProviderSummary[] }>(cacheKey);
+    if (cached) {
+      setProviders(cached.items || []);
+      setInitialLoading(false);
+      setIsFiltering(false);
+    } else {
+      setIsFiltering(true);
+    }
+
+    // 2. Fetch with AbortController to cancel stale queries
+    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (mounted) {
-          setProviders(data.items || []);
-        }
+        setCachedCatalogue(cacheKey, data);
+        setProviders(data.items || []);
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Failed to load veterinary clinics:', err);
-        if (mounted) {
-          setProviders([]);
-        }
       })
       .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
+        setInitialLoading(false);
+        setIsFiltering(false);
       });
 
     return () => {
-      mounted = false;
+      controller.abort();
     };
   }, [query, species, city, minRating]);
 
@@ -129,20 +141,28 @@ export default function VetPage() {
               onCityChange={setCity}
               onMinRatingChange={setMinRating}
               onReset={handleReset}
+              isSearching={isFiltering}
             />
           </div>
 
           {/* Results Area */}
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-ivory-300 pb-3">
-              <p className="text-sm text-charcoal-600">
-                Showing{' '}
-                <span className="font-semibold text-charcoal-900">{providers.length}</span>{' '}
-                veterinary clinics
+              <p className="text-sm text-charcoal-600 flex items-center gap-2">
+                <span>
+                  Showing{' '}
+                  <span className="font-semibold text-charcoal-900">{providers.length}</span>{' '}
+                  veterinary clinics
+                </span>
+                {isFiltering && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-sage-700">
+                    <Loader2 className="w-3 h-3 animate-spin" /> updating...
+                  </span>
+                )}
               </p>
             </div>
 
-            {loading ? (
+            {initialLoading && providers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-charcoal-500">
                 <Loader2 className="w-8 h-8 animate-spin text-sage-600 mb-3" />
                 <p className="text-sm font-medium">Loading accredited veterinary clinics...</p>
@@ -159,7 +179,11 @@ export default function VetPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${
+                  isFiltering ? 'opacity-70 pointer-events-none' : 'opacity-100'
+                }`}
+              >
                 {providers.map((provider) => (
                   <ProviderCard key={provider.id} provider={provider} />
                 ))}

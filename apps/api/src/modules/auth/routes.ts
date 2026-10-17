@@ -33,6 +33,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       httpOnly: false, // client-readable for double submit
       secure: isProd,
       sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
     });
   };
 

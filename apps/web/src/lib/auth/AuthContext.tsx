@@ -20,6 +20,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = React.useState(true);
 
   const refreshUser = React.useCallback(async () => {
+    // If running in browser and no auth indicator cookie is present, visitor is signed out
+    if (typeof document !== 'undefined' && !document.cookie.includes('pn_csrf=')) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const data = await apiFetch<{ user: UserSummary }>('/me');
       setUser(data.user);

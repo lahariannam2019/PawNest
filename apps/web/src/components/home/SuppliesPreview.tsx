@@ -13,56 +13,56 @@ export function SuppliesPreview() {
   const [activeCategory, setActiveCategory] = React.useState('All');
   const [addedItem, setAddedItem] = React.useState<string | null>(null);
 
-  const categories = ['All', 'Organic Food', 'Walk & Leashes', 'Beds & Linens', 'Grooming Care', 'Calm Toys'];
+  const categories = ['All', 'Organic Food', 'Walk & Leashes', 'Beds & Linens', 'Grooming Care'];
 
   const products = [
     {
       id: 'p-1',
-      slug: 'pasture-raised-salmon-kibble',
-      name: 'Wild Salmon & Heirloom Lentils Dry Food',
-      brand: 'Bounty & Burrow',
+      slug: 'nordic-pasture-raised-salmon-kibble',
+      name: 'Nordic Pasture-Raised Salmon & Sweet Potato Kibble',
+      brand: 'Nordic Hound',
       category: 'Organic Food',
-      priceCents: 4200,
-      compareAtCents: 4800,
+      priceCents: 3400,
+      compareAtCents: 3800,
       rating: 4.9,
-      reviews: 84,
-      image: '/images/svc-shop-01.jpg',
+      reviews: 38,
+      image: '/images/products/nordic-pasture-raised-salmon-kibble.jpg',
     },
     {
       id: 'p-2',
-      slug: 'artisan-leather-rope-leash',
-      name: 'Natural Cotton & Tuscan Leather Lead',
-      brand: 'Wild & Hearth',
+      slug: 'atelier-hands-free-climbing-rope-leash',
+      name: 'Nordic Multi-Way Hands-Free Climbing Rope Leash',
+      brand: 'Nordic Hound',
       category: 'Walk & Leashes',
-      priceCents: 3800,
-      compareAtCents: null,
-      rating: 5.0,
-      reviews: 42,
-      image: '/images/hero-02.jpg',
+      priceCents: 5800,
+      compareAtCents: 6500,
+      rating: 4.91,
+      reviews: 44,
+      image: '/images/products/atelier-hands-free-climbing-rope-leash.jpg',
     },
     {
       id: 'p-3',
-      slug: 'orthopedic-linen-dog-bed',
-      name: 'Memory Foam Slumber Nest in French Flax',
-      brand: 'Nest & Nap',
+      slug: 'cloud-haven-orthopedic-memory-foam-lounge-bed',
+      name: 'Cloud Haven Ergonomic Memory Foam Lounge Bed',
+      brand: 'LuxePup Studio',
       category: 'Beds & Linens',
-      priceCents: 12500,
-      compareAtCents: 14000,
-      rating: 4.8,
-      reviews: 36,
-      image: '/images/svc-board-01.jpg',
+      priceCents: 9500,
+      compareAtCents: 11000,
+      rating: 4.96,
+      reviews: 47,
+      image: '/images/products/cloud-haven-orthopedic-memory-foam-lounge-bed.jpg',
     },
     {
       id: 'p-4',
-      slug: 'oatmeal-botanical-shampoo',
-      name: 'Calming Chamomile & Oat Coat Elixir',
-      brand: 'Botanica Canis',
+      slug: 'botanical-chamomile-calming-shampoo',
+      name: 'Organic Chamomile & Colloidal Oatmeal Hypoallergenic Shampoo',
+      brand: 'Botanical Bark & Whisker',
       category: 'Grooming Care',
-      priceCents: 2400,
-      compareAtCents: null,
-      rating: 4.9,
-      reviews: 57,
-      image: '/images/svc-groom-01.jpg',
+      priceCents: 2200,
+      compareAtCents: 2600,
+      rating: 4.96,
+      reviews: 58,
+      image: '/images/products/botanical-chamomile-calming-shampoo.jpg',
     },
   ];
 
@@ -117,8 +117,9 @@ export function SuppliesPreview() {
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((prod) => (
-            <div
+            <Link
               key={prod.id}
+              href={`/supplies/p/${prod.slug}`}
               className="group bg-[var(--color-ivory-100)]/60 border border-[var(--color-ivory-300)] rounded-[var(--radius-xl)] overflow-hidden shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-1 transition-all flex flex-col"
             >
               {/* Image Frame */}
@@ -132,13 +133,13 @@ export function SuppliesPreview() {
                 />
               </div>
 
-              {/* Info & Quick Add */}
+              {/* Info & Action */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[var(--color-charcoal-500)] uppercase tracking-wider block">
                     {prod.brand}
                   </span>
-                  <h3 className="font-serif text-sm font-semibold text-[var(--color-charcoal-900)] line-clamp-2">
+                  <h3 className="font-serif text-sm font-semibold text-[var(--color-charcoal-900)] line-clamp-2 group-hover:text-[var(--color-sage-700)] transition-colors">
                     {prod.name}
                   </h3>
                   <Rating value={prod.rating} count={prod.reviews} />
@@ -146,18 +147,13 @@ export function SuppliesPreview() {
 
                 <div className="pt-3 border-t border-[var(--color-ivory-300)] flex items-center justify-between">
                   <Price cents={prod.priceCents} compareAtCents={prod.compareAtCents} />
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => handleQuickAdd(prod.name)}
-                    className="h-8 px-3 text-xs gap-1"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>{addedItem === prod.name ? 'Added!' : 'Add'}</span>
-                  </Button>
+                  <span className="text-xs font-semibold text-[var(--color-sage-700)] group-hover:underline flex items-center gap-1">
+                    <span>View item</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </Container>

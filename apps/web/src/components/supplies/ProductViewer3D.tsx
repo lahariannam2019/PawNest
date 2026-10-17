@@ -5,14 +5,21 @@ import Image from 'next/image';
 import { RotateCw, ZoomIn, Eye, Sparkles } from 'lucide-react';
 import { canUse3D } from '../../lib/three/canUse3D';
 import { Badge } from '../ui/Badge';
+import { resolveProductImageSrc, CATEGORY_FALLBACK_IMAGES } from '@/lib/images';
 
 interface ProductViewer3DProps {
   productName: string;
   imageKeys: string[];
   model3dKey?: string | null;
+  categorySlug?: string;
 }
 
-export function ProductViewer3D({ productName, imageKeys, model3dKey }: ProductViewer3DProps) {
+export function ProductViewer3D({
+  productName,
+  imageKeys,
+  model3dKey,
+  categorySlug,
+}: ProductViewer3DProps) {
   const [activeImageIndex, setActiveImageIndex] = React.useState(0);
   const [is3DMode, setIs3DMode] = React.useState(false);
   const [supports3D, setSupports3D] = React.useState(false);
@@ -42,7 +49,25 @@ export function ProductViewer3D({ productName, imageKeys, model3dKey }: ProductV
     setIsDragging(false);
   };
 
-  const currentImage = imageKeys[activeImageIndex] || imageKeys[0] || '/images/svc-shop-01.jpg';
+  const resolvedSrc = resolveProductImageSrc(
+    imageKeys[activeImageIndex] || imageKeys[0],
+    categorySlug
+  );
+  const [currentImage, setCurrentImage] = React.useState(resolvedSrc);
+
+  React.useEffect(() => {
+    setCurrentImage(
+      resolveProductImageSrc(imageKeys[activeImageIndex] || imageKeys[0], categorySlug)
+    );
+  }, [imageKeys, activeImageIndex, categorySlug]);
+
+  const handleImageError = () => {
+    const fallback =
+      (categorySlug && CATEGORY_FALLBACK_IMAGES[categorySlug]) || '/images/svc-shop-01.jpg';
+    if (currentImage !== fallback) {
+      setCurrentImage(fallback);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -75,6 +100,7 @@ export function ProductViewer3D({ productName, imageKeys, model3dKey }: ProductV
                   src={currentImage}
                   alt={productName}
                   fill
+                  onError={handleImageError}
                   className="object-cover"
                 />
               </div>
@@ -100,6 +126,7 @@ export function ProductViewer3D({ productName, imageKeys, model3dKey }: ProductV
               alt={productName}
               fill
               priority
+              onError={handleImageError}
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 50vw"
             />

@@ -5,9 +5,11 @@ import { Bell, CheckCheck, Clock, ExternalLink, X } from 'lucide-react';
 import { apiFetch } from '../../lib/api/client';
 import { NotificationSummary, NotificationListResponse } from '@pawnest/shared';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../lib/auth/AuthContext';
 
 export function NotificationBell() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<NotificationSummary[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -15,23 +17,29 @@ export function NotificationBell() {
   const popoverRef = React.useRef<HTMLDivElement>(null);
 
   const fetchNotifications = React.useCallback(async () => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
     try {
       setIsLoading(true);
       const res = await apiFetch<NotificationListResponse>('/notifications?limit=15');
       setNotifications(res.items);
       setUnreadCount(res.unreadCount);
     } catch {
-      // Quiet fail if not logged in or network issue
+      // Quiet fail if network issue
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   React.useEffect(() => {
+    if (!user) return;
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // 30s polling
     return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  }, [user, fetchNotifications]);
 
   // Close when clicking outside
   React.useEffect(() => {

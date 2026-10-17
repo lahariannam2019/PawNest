@@ -27,6 +27,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            suppressHydrationWarning
             className={twMerge(
               clsx(
                 'w-full h-[52px] px-4 rounded-[var(--radius-md)] bg-[var(--color-ivory-50)] border border-[var(--color-ivory-300)] text-[var(--color-charcoal-900)] placeholder:text-[var(--color-charcoal-500)] text-sm transition-all focus:outline-none focus:border-[var(--color-sage-600)] focus:ring-2 focus:ring-[var(--color-sage-200)] disabled:opacity-50 disabled:bg-[var(--color-ivory-200)]',

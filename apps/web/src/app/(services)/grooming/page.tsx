@@ -11,18 +11,20 @@ import { apiFetch } from '@/lib/api/client';
 import { ProviderSummary, Species } from '@pawnest/shared';
 import { Sparkles, Map, Loader2, Scissors, Info } from 'lucide-react';
 
+import { getCachedCatalogue, setCachedCatalogue } from '@/lib/api/catalogueCache';
+
 export default function GroomingPage() {
   const [query, setQuery] = useState('');
   const [species, setSpecies] = useState<Species | undefined>();
   const [city, setCity] = useState<string | undefined>();
   const [minRating, setMinRating] = useState<number | undefined>();
   const [providers, setProviders] = useState<ProviderSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [mapNotice, setMapNotice] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+    const controller = new AbortController();
 
     const params = new URLSearchParams({
       type: 'GROOMER',
@@ -31,27 +33,37 @@ export default function GroomingPage() {
       ...(city ? { city } : {}),
       ...(minRating ? { minRating: String(minRating) } : {}),
     });
+    const cacheKey = `providers:${params.toString()}`;
 
-    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`)
+    // 1. Instant display from client memory cache (0ms)
+    const cached = getCachedCatalogue<{ items: ProviderSummary[] }>(cacheKey);
+    if (cached) {
+      setProviders(cached.items || []);
+      setInitialLoading(false);
+      setIsFiltering(false);
+    } else {
+      setIsFiltering(true);
+    }
+
+    // 2. Fetch with AbortController to cancel stale queries
+    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (mounted) {
-          setProviders(data.items || []);
-        }
+        setCachedCatalogue(cacheKey, data);
+        setProviders(data.items || []);
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Failed to load groomers:', err);
-        if (mounted) {
-          setProviders([]);
-        }
       })
       .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
+        setInitialLoading(false);
+        setIsFiltering(false);
       });
 
     return () => {
-      mounted = false;
+      controller.abort();
     };
   }, [query, species, city, minRating]);
 
@@ -134,18 +146,25 @@ export default function GroomingPage() {
               minRating={minRating}
               onMinRatingChange={setMinRating}
               onReset={handleReset}
+              isSearching={isFiltering}
             />
           </div>
 
           {/* Results Summary */}
           <div className="flex items-center justify-between mb-6">
-            <span className="text-xs font-semibold text-charcoal-500 uppercase tracking-wider">
-              {loading ? 'Finding salons...' : `${providers.length} Ateliers available`}
+            <span className="text-xs font-semibold text-charcoal-500 uppercase tracking-wider flex items-center gap-2">
+              <span>{`${providers.length} Ateliers available`}</span>
+              {isFiltering && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-normal text-sage-700 normal-case tracking-normal">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  updating...
+                </span>
+              )}
             </span>
           </div>
 
           {/* Provider Grid */}
-          {loading ? (
+          {initialLoading && providers.length === 0 ? (
             <div className="py-20 flex flex-col items-center justify-center text-charcoal-500">
               <Loader2 className="w-8 h-8 animate-spin text-sage-600 mb-3" />
               <p className="text-sm font-serif">Curating grooming salons...</p>
@@ -165,7 +184,11 @@ export default function GroomingPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${
+                isFiltering ? 'opacity-70 pointer-events-none' : 'opacity-100'
+              }`}
+            >
               {providers.map((p) => (
                 <ProviderCard key={p.id} provider={p} />
               ))}

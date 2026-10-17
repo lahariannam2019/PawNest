@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Container } from '@/components/layout/Container';
@@ -12,13 +13,16 @@ import { ProviderSummary, Species } from '@pawnest/shared';
 import { Sparkles, Calendar, Loader2, Home, Info, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
+import { getCachedCatalogue, setCachedCatalogue } from '@/lib/api/catalogueCache';
+
 export default function BoardingPage() {
   const [query, setQuery] = useState('');
   const [species, setSpecies] = useState<Species | undefined>();
   const [city, setCity] = useState<string | undefined>();
   const [minRating, setMinRating] = useState<number | undefined>();
   const [providers, setProviders] = useState<ProviderSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   // Date range picker state for search bar
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -27,8 +31,7 @@ export default function BoardingPage() {
   const [nights, setNights] = useState(0);
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+    const controller = new AbortController();
 
     const params = new URLSearchParams({
       type: 'BOARDING',
@@ -37,27 +40,37 @@ export default function BoardingPage() {
       ...(city ? { city } : {}),
       ...(minRating ? { minRating: String(minRating) } : {}),
     });
+    const cacheKey = `providers:${params.toString()}`;
 
-    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`)
+    // 1. Instant display from client memory cache (0ms)
+    const cached = getCachedCatalogue<{ items: ProviderSummary[] }>(cacheKey);
+    if (cached) {
+      setProviders(cached.items || []);
+      setInitialLoading(false);
+      setIsFiltering(false);
+    } else {
+      setIsFiltering(true);
+    }
+
+    // 2. Fetch with AbortController to cancel stale queries
+    apiFetch<{ items: ProviderSummary[] }>(`/providers?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (mounted) {
-          setProviders(data.items || []);
-        }
+        setCachedCatalogue(cacheKey, data);
+        setProviders(data.items || []);
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Failed to load boarding providers:', err);
-        if (mounted) {
-          setProviders([]);
-        }
       })
       .finally(() => {
-        if (mounted) {
-          setLoading(false);
-        }
+        setInitialLoading(false);
+        setIsFiltering(false);
       });
 
     return () => {
-      mounted = false;
+      controller.abort();
     };
   }, [query, species, city, minRating]);
 
@@ -150,9 +163,9 @@ export default function BoardingPage() {
               <p>
                 To safeguard all guests, overnight boarding partners require verified <strong>Rabies, DHPP, and Bordetella</strong> records
                 valid through check-out. You can review and update your pet’s records anytime in your{' '}
-                <a href="/dashboard/pets" className="underline font-medium text-sage-800 hover:text-sage-900">
+                <Link href="/dashboard/pets" className="underline font-medium text-sage-800 hover:text-sage-900">
                   Pet Dashboard
-                </a>.
+                </Link>.
               </p>
             </div>
           </div>
@@ -172,13 +185,14 @@ export default function BoardingPage() {
                   onCityChange={setCity}
                   onMinRatingChange={setMinRating}
                   onReset={handleReset}
+                  isSearching={isFiltering}
                 />
               </div>
             </aside>
 
             {/* Providers Grid */}
             <div className="lg:col-span-3">
-              {loading ? (
+              {initialLoading && providers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-charcoal-500">
                   <Loader2 className="w-8 h-8 animate-spin text-sage-600 mb-3" />
                   <p className="text-sm font-medium">Locating luxury boarding facilities...</p>
@@ -199,13 +213,22 @@ export default function BoardingPage() {
               ) : (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between text-xs text-charcoal-500">
-                    <span>
-                      Showing <strong>{providers.length}</strong> boarding {providers.length === 1 ? 'retreat' : 'retreats'}
+                    <span className="flex items-center gap-2">
+                      <span>Showing <strong>{providers.length}</strong> boarding {providers.length === 1 ? 'retreat' : 'retreats'}</span>
+                      {isFiltering && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-sage-700">
+                          <Loader2 className="w-3 h-3 animate-spin" /> updating...
+                        </span>
+                      )}
                     </span>
                     <span>All partners verified & insured</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div
+                    className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-200 ${
+                      isFiltering ? 'opacity-70 pointer-events-none' : 'opacity-100'
+                    }`}
+                  >
                     {providers.map((provider) => (
                       <ProviderCard key={provider.id} provider={provider} />
                     ))}

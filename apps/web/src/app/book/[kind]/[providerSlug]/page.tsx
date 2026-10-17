@@ -366,13 +366,15 @@ export default function BookingWizardPage() {
     }
   }
 
-  if (authLoading || loadingInitial) {
+  if (authLoading || (!user && !authLoading) || loadingInitial) {
     return (
       <div className="min-h-screen flex flex-col bg-ivory-100">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center py-20 text-charcoal-500">
           <Loader2 className="w-8 h-8 animate-spin text-sage-600 mb-3" />
-          <p className="text-sm font-serif">Preparing reservation wizard...</p>
+          <p className="text-sm font-serif">
+            {!user && !authLoading ? 'Redirecting to sign-in to reserve appointment...' : 'Preparing reservation wizard...'}
+          </p>
         </div>
         <Footer />
       </div>
@@ -1306,49 +1308,210 @@ export default function BookingWizardPage() {
             )}
 
             {/* ============================================================== */}
-            {/* GROOMING: STEP 2 (Treatment Selection)                         */}
+            {/* GROOMING: STEP 2 (Treatment & Add-on Selection)                 */}
             {/* ============================================================== */}
-            {isGrooming && step === 2 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-serif font-bold text-charcoal-900">Choose Service</h2>
-                <div className="space-y-2">
-                  {services.filter((s) => !s.isAddOn).map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => setSelectedService(s)}
-                      className={`p-4 rounded-2xl border cursor-pointer flex justify-between ${
-                        selectedService?.id === s.id ? 'border-sage-600 bg-sage-50' : 'border-ivory-300 bg-white'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-serif font-bold">{s.name}</div>
-                        <p className="text-xs text-charcoal-600">{s.description}</p>
-                      </div>
-                      <div className="font-serif font-bold">${(s.basePriceCents / 100).toFixed(0)}</div>
+            {isGrooming && step === 2 && (() => {
+              const groomingPrimary = services
+                .filter((s) => !s.isAddOn)
+                .filter((s) => !selectedPet || !s.species || s.species.length === 0 || s.species.includes(selectedPet.species));
+              const groomingAddOns = services
+                .filter((s) => s.isAddOn)
+                .filter((s) => !selectedPet || !s.species || s.species.length === 0 || s.species.includes(selectedPet.species));
+
+              return (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-serif font-bold text-charcoal-900">Choose Treatment & Coat Care</h2>
+                    <p className="text-xs text-charcoal-600 mt-1">
+                      Showing treatments tailored for {selectedPet?.name} ({selectedPet?.species === 'CAT' ? 'Feline' : 'Canine'} · {selectedPet?.breed || 'Pet'}).
+                    </p>
+                  </div>
+
+                  {groomingPrimary.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl border border-dashed border-ivory-300 bg-ivory-50/50 space-y-2">
+                      <Scissors className="w-8 h-8 text-charcoal-400 mx-auto" />
+                      <p className="font-serif font-semibold text-charcoal-800">No matching services available</p>
+                      <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
+                        This salon does not offer treatments tailored for {selectedPet ? selectedPet.species.toLowerCase() + 's' : 'this pet'} currently. You can change your pet selection or choose another salon.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-2">
+                      {groomingPrimary.map((s) => (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedService(s)}
+                          className={`p-4 rounded-2xl border cursor-pointer flex justify-between items-center transition-all ${
+                            selectedService?.id === s.id
+                              ? 'border-sage-600 bg-sage-50/70 ring-2 ring-sage-600/20 shadow-2xs'
+                              : 'border-ivory-300 bg-white hover:border-sage-300'
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-serif font-bold text-sm text-charcoal-900">{s.name}</div>
+                            <p className="text-xs text-charcoal-600 max-w-lg">{s.description}</p>
+                            <span className="text-[11px] text-charcoal-400 block pt-0.5">
+                              Estimated duration: {s.durationMin} minutes
+                            </span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-serif font-bold text-lg text-charcoal-900">
+                              ${(s.basePriceCents / 100).toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add-on Grooming Treatments */}
+                  {groomingAddOns.length > 0 && (
+                    <div className="pt-4 border-t border-ivory-200 space-y-3">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                        Optional Add-On Spa Treatments
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {groomingAddOns.map((addon) => {
+                          const isSelected = selectedAddOnIds.includes(addon.id);
+                          return (
+                            <div
+                              key={addon.id}
+                              onClick={() => handleToggleAddon(addon.id)}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                                isSelected
+                                  ? 'bg-sage-50 border-sage-600 ring-2 ring-sage-600/20 shadow-2xs'
+                                  : 'bg-white border-ivory-300 hover:border-sage-300'
+                              }`}
+                            >
+                              <div>
+                                <div className="font-semibold text-xs text-charcoal-900">{addon.name}</div>
+                                <p className="text-[10px] text-charcoal-500 mt-0.5 line-clamp-2">{addon.description}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-xs text-charcoal-900">
+                                  +${(addon.basePriceCents / 100).toFixed(0)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-4 flex justify-between">
+                    <Button variant="secondary" onClick={() => setStep(1)}>
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                    </Button>
+                    <Button variant="primary" disabled={!selectedService} onClick={() => setStep(3)}>
+                      Select Treatment Slot <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="pt-4 flex justify-between">
-                  <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
-                  <Button variant="primary" disabled={!selectedService} onClick={() => setStep(3)}>Continue</Button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ============================================================== */}
-            {/* GROOMING: STEP 4 (Confirmation)                                */}
+            {/* GROOMING: STEP 4 (Review & Confirmation)                       */}
             {/* ============================================================== */}
             {isGrooming && step === 4 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-serif font-bold text-charcoal-900">Confirm Booking</h2>
-                {submitError && <div className="p-3 bg-rose-50 text-rose-800 text-xs rounded-xl">{submitError}</div>}
-                <div className="p-4 bg-ivory-50 rounded-2xl border border-ivory-300">
-                  <p><strong>Service:</strong> {selectedService?.name}</p>
-                  <p><strong>Pet:</strong> {selectedPet?.name}</p>
-                  <p><strong>Starts:</strong> {selectedSlot?.startsAt}</p>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-charcoal-900">Review & Confirm Grooming Session</h2>
+                  <p className="text-xs text-charcoal-600 mt-1">
+                    Review your bespoke styling appointment and add any special handling or coat sensitivity notes.
+                  </p>
                 </div>
+
+                {submitError && (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
+                <div className="p-5 bg-ivory-50/80 rounded-2xl border border-ivory-300 space-y-4 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4 border-b border-ivory-200">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Pet</span>
+                      <p className="font-serif font-bold text-sm text-charcoal-900">{selectedPet?.name}</p>
+                      <p className="text-charcoal-500 text-[11px]">{selectedPet?.breed || 'Pet'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Salon</span>
+                      <p className="font-serif font-bold text-sm text-charcoal-900">{provider.name}</p>
+                      <p className="text-charcoal-500 text-[11px]">{provider.city}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Date & Window</span>
+                      <p className="font-serif font-bold text-sm text-charcoal-900">
+                        {selectedSlot &&
+                          new Date(selectedSlot.startsAt).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                      </p>
+                      <p className="text-charcoal-500 text-[11px]">
+                        {selectedSlot &&
+                          new Date(selectedSlot.startsAt).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC',
+                          })}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-charcoal-400">Primary Treatment</span>
+                      <p className="font-serif font-bold text-sm text-sage-900">{selectedService?.name}</p>
+                      <p className="text-charcoal-500 text-[11px]">{selectedService?.durationMin} min duration</p>
+                    </div>
+                  </div>
+
+                  {/* Grooming Instructions & Sensitivities */}
+                  <div className="space-y-2 pt-1 pb-3 border-b border-ivory-200">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+                      Coat Sensitivities & Styling Preferences (Optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="e.g. Sensitive around paws, scissor trim face short, prefers low-noise dryer..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-ivory-300 text-xs text-charcoal-900 focus:outline-none focus:ring-2 focus:ring-sage-600 bg-white"
+                    />
+                  </div>
+
+                  {/* Pricing Breakdown */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-charcoal-600">
+                      <span>{selectedService?.name}</span>
+                      <span>${(quote ? quote.priceBreakdown.baseCents / 100 : (selectedService?.basePriceCents || 0) / 100).toFixed(2)}</span>
+                    </div>
+
+                    {quote && quote.priceBreakdown.addOns && quote.priceBreakdown.addOns.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-ivory-200/60">
+                        {quote.priceBreakdown.addOns.map((ad) => (
+                          <div key={ad.id} className="flex justify-between text-charcoal-600 text-[11px]">
+                            <span>+ {ad.name}</span>
+                            <span>${(ad.priceCents / 100).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-sm font-serif font-bold text-charcoal-900 pt-2 border-t border-ivory-300">
+                      <span>Total Estimated Service</span>
+                      <span>${(quote ? quote.priceCents / 100 : (selectedService?.basePriceCents || 0) / 100).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-4 flex justify-between">
-                  <Button variant="secondary" onClick={() => setStep(3)}>Back</Button>
+                  <Button variant="secondary" onClick={() => setStep(3)}>
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                  </Button>
                   <Button variant="primary" disabled={submitting} onClick={handleConfirmBooking}>
                     {submitting ? 'Confirming...' : 'Confirm Grooming Booking'}
                   </Button>

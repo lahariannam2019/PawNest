@@ -479,4 +479,28 @@ describe('PawNest Veterinary Appointments & Medical Intake (Phase 6)', () => {
       expect(notificationsAfter.length).toBe(1);
     });
   });
+
+  afterAll(async () => {
+    try {
+      if (testVetProviderId) {
+        await prisma.review.deleteMany({ where: { providerId: testVetProviderId } });
+        await prisma.booking.deleteMany({ where: { providerId: testVetProviderId } });
+        await prisma.service.deleteMany({ where: { providerId: testVetProviderId } });
+        await prisma.providerHours.deleteMany({ where: { providerId: testVetProviderId } });
+        await prisma.provider.deleteMany({ where: { id: testVetProviderId } });
+      }
+      const userIds = [userAId, userBId].filter(Boolean) as string[];
+      if (userIds.length > 0) {
+        await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.booking.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.pet.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.idempotencyRecord.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      }
+      await stopBoss();
+    } finally {
+      await app.close();
+    }
+  });
 });

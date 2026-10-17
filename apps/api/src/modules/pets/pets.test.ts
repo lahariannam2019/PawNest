@@ -124,6 +124,24 @@ describe('PawNest Pet Profiles & Vaccinations End-to-End', () => {
     expect(body.pet.sizeTier).toBe(SizeTier.XS);
   });
 
+  it('POST /pets REJECTS duplicate pet name for the same owner with 409 Conflict', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/pets',
+      cookies: { pn_at: userAToken },
+      payload: {
+        name: 'Barnaby', // Already created above
+        species: Species.DOG,
+        breed: 'Golden Retriever',
+      },
+    });
+
+    expect(res.statusCode).toBe(409);
+    const body = JSON.parse(res.payload);
+    expect(body.code).toBe('CONFLICT');
+    expect(body.detail).toContain('already exists');
+  });
+
   it('GET /pets lists all own pets and excludes soft-deleted pets', async () => {
     const res = await app.inject({
       method: 'GET',
@@ -361,6 +379,10 @@ describe('PawNest Pet Profiles & Vaccinations End-to-End', () => {
       cookies: { pn_at: userAToken },
     });
     expect(deleteSuccess.statusCode).toBe(200);
+
+    // Clean up test booking and provider immediately
+    await prisma.booking.deleteMany({ where: { id: futureBooking.id } });
+    await prisma.provider.deleteMany({ where: { id: provider.id } });
 
     // 6. Pet is soft-deleted, not returned in active list
     const listRes = await app.inject({

@@ -93,8 +93,11 @@ export function PetForm({
       .filter((t) => t.length > 0);
   };
 
+  const isSubmittingRef = React.useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isSubmittingRef.current) return;
     setServerError(null);
 
     if (!name.trim()) {
@@ -102,6 +105,7 @@ export function PetForm({
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     const payload = {
@@ -144,9 +148,9 @@ export function PetForm({
         else router.push(`/dashboard/pets/${res.pet.id}`);
       }
     } catch (err: any) {
-      setServerError(err.message || 'Failed to save pet profile. Please check the fields and try again.');
-    } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
+      setServerError(err.message || 'Failed to save pet profile. Please check the fields and try again.');
     }
   };
 
@@ -172,10 +176,12 @@ export function PetForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
           <div>
-            <label className="block text-xs font-semibold text-[var(--color-charcoal-800)] uppercase tracking-wider mb-2">
+            <label htmlFor="name" className="block text-xs font-semibold text-[var(--color-charcoal-800)] uppercase tracking-wider mb-2">
               Pet Name *
             </label>
             <Input
+              id="name"
+              name="name"
               type="text"
               placeholder="e.g. Barnaby"
               value={name}
@@ -215,10 +221,12 @@ export function PetForm({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--color-charcoal-800)] uppercase tracking-wider mb-2">
+            <label htmlFor="breed" className="block text-xs font-semibold text-[var(--color-charcoal-800)] uppercase tracking-wider mb-2">
               Breed
             </label>
             <Input
+              id="breed"
+              name="breed"
               type="text"
               placeholder="e.g. Golden Retriever"
               value={breed}

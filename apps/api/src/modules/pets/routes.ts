@@ -107,6 +107,18 @@ export const petRoutes: FastifyPluginAsync = async (app) => {
       const userId = request.user!.userId;
       const body = request.body as any;
 
+      // Check for active duplicate pet with the same name for this owner
+      const existing = await prisma.pet.findFirst({
+        where: {
+          userId,
+          name: { equals: body.name.trim(), mode: 'insensitive' },
+          deletedAt: null,
+        },
+      });
+      if (existing) {
+        throw new ConflictError(ErrorCode.CONFLICT, `A companion named "${body.name.trim()}" already exists in your profile.`);
+      }
+
       // Auto-derive sizeTier if not specified
       let sizeTier = body.sizeTier;
       if (!sizeTier && body.weightKg != null) {

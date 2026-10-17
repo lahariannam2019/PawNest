@@ -82,7 +82,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Senior'],
       tags: ['Grain-Free', 'Wild-Caught', 'High-Omega', 'Bestseller'],
-      imageKeys: ['/images/svc-shop-01.jpg', '/images/story-01.jpg'],
+      imageKeys: ['/images/products/nordic-pasture-raised-salmon-kibble.jpg'],
       ratingAvg: 4.9,
       ratingCount: 38,
       variants: [
@@ -117,7 +117,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Puppy', 'Adult'],
       tags: ['Single-Protein', 'Hypoallergenic', 'Free-Range'],
-      imageKeys: ['/images/story-02.jpg', '/images/svc-shop-01.jpg'],
+      imageKeys: ['/images/products/alpine-meadow-free-range-duck-dinner.jpg'],
       ratingAvg: 4.8,
       ratingCount: 24,
       variants: [
@@ -139,7 +139,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.CAT],
       lifeStage: ['Kitten', 'Adult', 'Senior'],
       tags: ['Grain-Free', 'Hydration-First', 'Carrageenan-Free'],
-      imageKeys: ['/images/how-01.jpg', '/images/pet-01.jpg'],
+      imageKeys: ['/images/products/serene-feline-ocean-whitefish-pate.jpg'],
       ratingAvg: 4.95,
       ratingCount: 42,
       variants: [
@@ -162,7 +162,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['All Stages'],
       tags: ['Raw Diet', 'Freeze-Dried', 'Single-Ingredient Base'],
-      imageKeys: ['/images/svc-shop-01.jpg'],
+      imageKeys: ['/images/products/heritage-grass-fed-lamb-freeze-dried.jpg'],
       ratingAvg: 4.88,
       ratingCount: 19,
       variants: [
@@ -186,7 +186,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Puppy', 'Senior'],
       tags: ['Vegetarian', 'Oven-Baked', 'Digestive Aid'],
-      imageKeys: ['/images/story-01.jpg', '/images/how-02.jpg'],
+      imageKeys: ['/images/products/organic-peanut-butter-pumpkin-biscuits.jpg'],
       ratingAvg: 4.85,
       ratingCount: 52,
       variants: [
@@ -215,7 +215,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Puppy', 'Adult'],
       tags: ['Rawhide-Alternative', 'Dental Care', 'Single-Ingredient'],
-      imageKeys: ['/images/story-02.jpg'],
+      imageKeys: ['/images/products/wild-icelandic-cod-skin-chews.jpg'],
       ratingAvg: 4.92,
       ratingCount: 31,
       variants: [
@@ -237,7 +237,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['Puppy', 'Kitten', 'Adult', 'Senior'],
       tags: ['High-Value Training', 'Zero-Additives', 'Hypoallergenic'],
-      imageKeys: ['/images/how-03.jpg'],
+      imageKeys: ['/images/products/freeze-dried-wild-salmon-bites.jpg'],
       ratingAvg: 4.97,
       ratingCount: 64,
       variants: [
@@ -261,7 +261,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Senior'],
       tags: ['Orthopedic', 'Washable Cover', 'Architectural Design'],
-      imageKeys: ['/images/hero-02.jpg', '/images/svc-board-01.jpg'],
+      imageKeys: ['/images/products/cloud-haven-orthopedic-memory-foam-lounge-bed.jpg'],
       ratingAvg: 4.96,
       ratingCount: 47,
       variants: [
@@ -293,7 +293,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['All Stages'],
       tags: ['Eco-Friendly', 'Thermal Wool', 'Anxiety Relief'],
-      imageKeys: ['/images/story-03.jpg'],
+      imageKeys: ['/images/products/serene-wool-calming-donut-pet-cave.jpg'],
       ratingAvg: 4.84,
       ratingCount: 28,
       variants: [
@@ -318,7 +318,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Puppy'],
       tags: ['Handcrafted', 'Solid Brass', 'Full-Grain Leather'],
-      imageKeys: ['/images/how-02.jpg'],
+      imageKeys: ['/images/products/atelier-vegetable-tanned-leather-collar.jpg'],
       ratingAvg: 4.93,
       ratingCount: 35,
       variants: [
@@ -342,7 +342,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['All Stages'],
       tags: ['Hands-Free', 'Climbing Rope', 'Weatherproof'],
-      imageKeys: ['/images/how-03.jpg'],
+      imageKeys: ['/images/products/atelier-hands-free-climbing-rope-leash.jpg'],
       ratingAvg: 4.91,
       ratingCount: 44,
       variants: [
@@ -367,7 +367,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['All Stages'],
       tags: ['Slow Feeder', 'Lead-Free Ceramic', 'Whisker-Friendly'],
-      imageKeys: ['/images/how-01.jpg'],
+      imageKeys: ['/images/products/stoneware-slow-feeder-enrichment-bowl.jpg'],
       ratingAvg: 4.89,
       ratingCount: 39,
       variants: [
@@ -390,7 +390,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Senior'],
       tags: ['Elevated Dining', 'Solid Walnut', 'Joint Support'],
-      imageKeys: ['/images/cta-01.jpg'],
+      imageKeys: ['/images/products/elevated-walnut-wood-double-feeder.jpg'],
       ratingAvg: 4.94,
       ratingCount: 27,
       variants: [
@@ -414,7 +414,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['All Stages'],
       tags: ['Eco-Grooming', 'Boar Bristle', 'Anti-Static'],
-      imageKeys: ['/images/svc-groom-01.jpg'],
+      imageKeys: ['/images/products/beechwood-artisan-pin-and-bristle-brush.jpg'],
       ratingAvg: 4.91,
       ratingCount: 33,
       variants: [
@@ -435,7 +435,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['Puppy', 'Adult', 'Senior'],
       tags: ['Sulfate-Free', 'Colloidal Oatmeal', 'Hypoallergenic'],
-      imageKeys: ['/images/how-02.jpg'],
+      imageKeys: ['/images/products/botanical-chamomile-calming-shampoo.jpg'],
       ratingAvg: 4.96,
       ratingCount: 58,
       variants: [
@@ -459,7 +459,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Puppy', 'Adult'],
       tags: ['Biodegradable', 'Zero-Plastic', 'Dental Chew'],
-      imageKeys: ['/images/pet-01.jpg'],
+      imageKeys: ['/images/products/organic-hemp-rope-tug-and-floss-ring.jpg'],
       ratingAvg: 4.82,
       ratingCount: 41,
       variants: [
@@ -481,7 +481,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.CAT],
       lifeStage: ['Kitten', 'Adult', 'Senior'],
       tags: ['Organic Catnip', 'Fair-Trade', 'Zero-Plastic'],
-      imageKeys: ['/images/story-03.jpg'],
+      imageKeys: ['/images/products/sensory-felt-wool-catnip-mice-trio.jpg'],
       ratingAvg: 4.93,
       ratingCount: 36,
       variants: [
@@ -504,7 +504,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG, Species.CAT],
       lifeStage: ['Puppy', 'Kitten', 'Adult', 'Senior'],
       tags: ['Joint Support', 'Skin & Coat', 'Wild Omega-3', 'Bestseller'],
-      imageKeys: ['/images/how-03.jpg'],
+      imageKeys: ['/images/products/wild-alaskan-salmon-and-krill-oil-drops.jpg'],
       ratingAvg: 4.98,
       ratingCount: 72,
       variants: [
@@ -533,7 +533,7 @@ export async function seedProductsAndOrders(prisma: PrismaClient, demoUserId: st
       species: [Species.DOG],
       lifeStage: ['Adult', 'Puppy', 'Senior'],
       tags: ['Digestive Health', '3 Billion CFU', 'Veterinarian-Formulated'],
-      imageKeys: ['/images/story-01.jpg'],
+      imageKeys: ['/images/products/botanical-probiotic-digestive-daily-chews.jpg'],
       ratingAvg: 4.87,
       ratingCount: 30,
       variants: [

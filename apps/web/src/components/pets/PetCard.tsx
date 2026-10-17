@@ -39,6 +39,7 @@ export function PetCard({ pet, className = '' }: PetCardProps) {
 
   return (
     <div
+      data-testid="pet-card"
       className={`group bg-[var(--color-ivory-50)] border border-[var(--color-ivory-300)] rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between ${className}`}
     >
       <div>

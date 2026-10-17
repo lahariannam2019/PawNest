@@ -123,7 +123,54 @@ describe('PawNest Phase 7 — Supplies, Cart, Checkout & Orders End-to-End', () 
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      const testProducts = await prisma.product.findMany({
+        where: {
+          OR: [
+            { slug: { startsWith: 'contest-prod-' } },
+            { slug: { startsWith: 'expire-test-' } },
+            { slug: 'test-kibble' },
+          ],
+        },
+        select: { id: true },
+      });
+      const prodIds = testProducts.map((p) => p.id);
+      if (prodIds.length > 0) {
+        await prisma.cartItem.deleteMany({ where: { variant: { productId: { in: prodIds } } } });
+        await prisma.orderItem.deleteMany({ where: { variant: { productId: { in: prodIds } } } });
+        await prisma.productVariant.deleteMany({ where: { productId: { in: prodIds } } });
+        await prisma.product.deleteMany({ where: { id: { in: prodIds } } });
+      }
+
+      const testUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            { email: { startsWith: 'cart-user-a-' } },
+            { email: { startsWith: 'cart-user-b-' } },
+            { email: { startsWith: 'cart-admin-' } },
+            { email: { startsWith: 'orders-user-a-' } },
+            { email: { startsWith: 'orders-user-b-' } },
+            { email: { startsWith: 'orders-admin-' } },
+            { email: { startsWith: 'contest-buyer-' } },
+            { email: { startsWith: 'expire-buyer-' } },
+            { id: { in: [userAId, userBId, adminId].filter(Boolean) as string[] } },
+          ],
+        },
+        select: { id: true },
+      });
+      const userIds = testUsers.map((u) => u.id);
+      if (userIds.length > 0) {
+        await prisma.cartItem.deleteMany({ where: { cart: { userId: { in: userIds } } } });
+        await prisma.cart.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.orderItem.deleteMany({ where: { order: { userId: { in: userIds } } } });
+        await prisma.order.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.idempotencyRecord.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      }
+    } finally {
+      await app.close();
+    }
   });
 
   // 1. Product Catalogue & Search

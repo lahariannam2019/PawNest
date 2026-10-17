@@ -44,9 +44,9 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo & Wordmark */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-full bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-[var(--shadow-1)]">
+            <div className="w-9 h-9 shrink-0 rounded-full bg-[var(--color-sage-700)] text-[var(--color-ivory-50)] flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-[var(--shadow-1)]">
               {/* Refined paw-in-arch mark */}
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 shrink-0 fill-current" width="20" height="20" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-5.52-4.48-10-10-10zm-3 8c.83 0 1.5.67 1.5 1.5S9.83 13 9 13s-1.5-.67-1.5-1.5S8.17 10 9 10zm6 0c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-3 4.5c1.66 0 3 1.34 3 3 0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1 0-1.66 1.34-3 3-3z" />
               </svg>
             </div>

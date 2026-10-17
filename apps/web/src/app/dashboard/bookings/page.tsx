@@ -17,12 +17,19 @@ import {
   XCircle,
 } from 'lucide-react';
 
+import { useAuth } from '@/lib/auth/AuthContext';
+
 export default function DashboardBookingsPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterTab, setFilterTab] = useState<'UPCOMING' | 'PAST'>('UPCOMING');
 
   useEffect(() => {
+    if (!user) {
+      if (!authLoading) setLoading(false);
+      return;
+    }
     let mounted = true;
     apiFetch<{ items: BookingSummary[] }>('/bookings')
       .then((res) => {
@@ -40,7 +47,7 @@ export default function DashboardBookingsPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user, authLoading]);
 
   const now = new Date();
   const upcomingList = bookings.filter(

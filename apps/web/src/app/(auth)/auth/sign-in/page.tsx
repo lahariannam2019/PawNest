@@ -7,7 +7,7 @@ import { AuthShell } from '../../../../components/auth/AuthShell';
 import { Input } from '../../../../components/ui/Input';
 import { Button } from '../../../../components/ui/Button';
 import { useAuth } from '../../../../lib/auth/AuthContext';
-import { ApiError } from '../../../../lib/api/client';
+import { ApiError, apiFetch } from '../../../../lib/api/client';
 
 function SignInForm() {
   const router = useRouter();
@@ -27,6 +27,35 @@ function SignInForm() {
 
     try {
       await login(email, password);
+
+      // Execute pending guest action if present
+      try {
+        const pendingStr = sessionStorage.getItem('pawnest_pending_action');
+        if (pendingStr) {
+          sessionStorage.removeItem('pawnest_pending_action');
+          const pending = JSON.parse(pendingStr);
+          if (pending.type === 'add_to_cart' && pending.variantId) {
+            await apiFetch('/cart/items', {
+              method: 'POST',
+              body: JSON.stringify({
+                variantId: pending.variantId,
+                quantity: pending.quantity || 1,
+              }),
+            });
+          } else if (pending.type === 'favourite' && pending.kind && pending.id) {
+            await apiFetch('/me/favourites', {
+              method: 'POST',
+              body: JSON.stringify({
+                kind: pending.kind,
+                id: pending.id,
+              }),
+            });
+          }
+        }
+      } catch (pendingErr) {
+        console.error('Failed to execute pending action after login:', pendingErr);
+      }
+
       router.push(nextUrl);
     } catch (err: any) {
       if (err instanceof ApiError) {

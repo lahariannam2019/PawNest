@@ -10,14 +10,17 @@ import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { FavouriteButton } from '../../../components/ui/FavouriteButton';
 import { resolveImageSrc } from '@/lib/images';
+import { useAuth } from '../../../lib/auth/AuthContext';
 
 export default function FavouritesPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [favourites, setFavourites] = React.useState<FavouriteSummary[]>([]);
   const [activeTab, setActiveTab] = React.useState<'ALL' | 'PROVIDER' | 'PRODUCT'>('ALL');
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   const fetchFavourites = React.useCallback(async () => {
+    if (!user) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -28,11 +31,15 @@ export default function FavouritesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   React.useEffect(() => {
-    fetchFavourites();
-  }, [fetchFavourites]);
+    if (user) {
+      fetchFavourites();
+    } else if (!authLoading) {
+      setIsLoading(false);
+    }
+  }, [user, authLoading, fetchFavourites]);
 
   const handleRemoved = (id: string) => {
     setFavourites((prev) => prev.filter((f) => f.id !== id));

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { resolveImageSrc } from '@/lib/images';
 import { apiFetch } from '@/lib/api/client';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { ProviderSummary, BoardingUnitSummary, ReviewSummary } from '@pawnest/shared';
 import {
   Star,
@@ -34,6 +35,7 @@ interface BoardingDetailPageProps {
 
 export default function BoardingDetailPage({ params }: BoardingDetailPageProps) {
   const { slug } = use(params);
+  const { user } = useAuth();
   const [provider, setProvider] = useState<ProviderSummary | null>(null);
   const [units, setUnits] = useState<BoardingUnitSummary[]>([]);
   const [reviews, setReviews] = useState<ReviewSummary[]>([]);
@@ -269,7 +271,13 @@ export default function BoardingDetailPage({ params }: BoardingDetailPageProps) 
                           <div className="text-[11px] text-charcoal-500 font-medium">per night</div>
                         </div>
 
-                        <Link href={`/book/boarding/${provider.slug}?unitId=${unit.id}`}>
+                        <Link
+                          href={
+                            user
+                              ? `/book/boarding/${provider.slug}?unitId=${unit.id}`
+                              : `/auth/sign-in?next=${encodeURIComponent(`/book/boarding/${provider.slug}?unitId=${unit.id}`)}`
+                          }
+                        >
                           <Button variant="primary" size="sm" className="whitespace-nowrap">
                             Book This Suite
                           </Button>
@@ -339,10 +347,16 @@ export default function BoardingDetailPage({ params }: BoardingDetailPageProps) 
 
                       <p className="text-xs text-charcoal-600 leading-relaxed">{rev.body}</p>
 
-                      {rev.isSample && (
+                      {rev.isSample ? (
                         <div className="pt-2">
-                          <span className="text-[10px] text-peach-700 bg-peach-50 px-2 py-0.5 rounded-full border border-peach-200">
-                            Verified Guest Stay (Sample)
+                          <span className="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-semibold">
+                            Sample Review
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="pt-2">
+                          <span className="text-[10px] text-sage-800 bg-sage-50 px-2 py-0.5 rounded-full border border-sage-200 font-semibold">
+                            Verified Guest Stay
                           </span>
                         </div>
                       )}
@@ -386,7 +400,14 @@ export default function BoardingDetailPage({ params }: BoardingDetailPageProps) 
                   </p>
                 </div>
 
-                <Link href={`/book/boarding/${provider.slug}`} className="block">
+                <Link
+                  href={
+                    user
+                      ? `/book/boarding/${provider.slug}`
+                      : `/auth/sign-in?next=${encodeURIComponent(`/book/boarding/${provider.slug}`)}`
+                  }
+                  className="block"
+                >
                   <Button variant="primary" className="w-full justify-center text-sm py-3 font-semibold">
                     Start Reservation
                   </Button>

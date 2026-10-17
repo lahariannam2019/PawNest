@@ -7,7 +7,7 @@ import { Star, ShoppingBag, Eye, ArrowRight } from 'lucide-react';
 import { ProductListItemSummary } from '@pawnest/shared';
 import { Badge } from '../ui/Badge';
 import { FavouriteButton } from '../ui/FavouriteButton';
-import { resolveImageSrc } from '@/lib/images';
+import { resolveProductImageSrc, CATEGORY_FALLBACK_IMAGES } from '@/lib/images';
 
 export function ProductCard({ product }: { product: ProductListItemSummary }) {
   const isPriceRange = product.minPriceCents !== product.maxPriceCents;
@@ -15,7 +15,12 @@ export function ProductCard({ product }: { product: ProductListItemSummary }) {
     ? `$${(product.minPriceCents / 100).toFixed(2)} – $${(product.maxPriceCents / 100).toFixed(2)}`
     : `$${(product.minPriceCents / 100).toFixed(2)}`;
 
-  const imageSrc = resolveImageSrc(product.imageKeys?.[0], '/images/svc-shop-01.jpg');
+  const initialSrc = resolveProductImageSrc(product.imageKeys?.[0], product.categorySlug);
+  const [imgSrc, setImgSrc] = React.useState(initialSrc);
+
+  React.useEffect(() => {
+    setImgSrc(resolveProductImageSrc(product.imageKeys?.[0], product.categorySlug));
+  }, [product.imageKeys, product.categorySlug]);
 
   return (
     <div className="group rounded-[var(--radius-lg)] bg-[var(--color-ivory-50)] border border-[var(--color-ivory-300)] overflow-hidden shadow-[var(--shadow-1)] hover:shadow-[var(--shadow-2)] hover:border-[var(--color-sage-300)] transition-all duration-300 flex flex-col h-full">
@@ -25,9 +30,17 @@ export function ProductCard({ product }: { product: ProductListItemSummary }) {
         className="block relative aspect-square bg-[var(--color-ivory-200)] overflow-hidden border-b border-[var(--color-ivory-300)]"
       >
         <Image
-          src={imageSrc}
+          src={imgSrc}
           alt={product.name}
           fill
+          onError={() => {
+            const fallback =
+              (product.categorySlug && CATEGORY_FALLBACK_IMAGES[product.categorySlug]) ||
+              '/images/svc-shop-01.jpg';
+            if (imgSrc !== fallback) {
+              setImgSrc(fallback);
+            }
+          }}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />

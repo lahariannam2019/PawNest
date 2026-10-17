@@ -17,13 +17,18 @@ import {
   Species,
 } from '@pawnest/shared';
 
+import { getCachedCatalogue, setCachedCatalogue } from '../../../lib/api/catalogueCache';
+import { useDebounce } from '../../../lib/hooks/useDebounce';
+import { Loader2 } from 'lucide-react';
+
 function SuppliesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [categories, setCategories] = React.useState<CategorySummary[]>([]);
   const [products, setProducts] = React.useState<ProductListItemSummary[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [initialLoading, setInitialLoading] = React.useState(true);
+  const [isFiltering, setIsFiltering] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   // Filter state
@@ -34,17 +39,37 @@ function SuppliesContent() {
   const searchQuery = searchParams.get('q') || '';
 
   const [searchInput, setSearchInput] = React.useState(searchQuery);
+  const debouncedSearch = useDebounce(searchInput, 300);
 
   // Sync search input when URL changes
   React.useEffect(() => {
     setSearchInput(searchQuery);
   }, [searchQuery]);
 
-  // Fetch categories once
+  // Live debounced search sync to URL
+  React.useEffect(() => {
+    if (debouncedSearch !== searchQuery) {
+      const current = new URLSearchParams(searchParams.toString());
+      if (debouncedSearch.trim()) {
+        current.set('q', debouncedSearch.trim());
+      } else {
+        current.delete('q');
+      }
+      router.push(`/supplies?${current.toString()}`);
+    }
+  }, [debouncedSearch, searchQuery, searchParams, router]);
+
+  // Fetch categories once with cache
   React.useEffect(() => {
     async function fetchCategories() {
+      const cached = getCachedCatalogue<{ categories: CategorySummary[] }>('categories:all', 5 * 60 * 1000);
+      if (cached) {
+        setCategories(cached.categories);
+        return;
+      }
       try {
         const res = await apiFetch<{ categories: CategorySummary[] }>('/categories');
+        setCachedCatalogue('categories:all', res);
         setCategories(res.categories);
       } catch (err) {
         console.error('Failed to load categories:', err);
@@ -53,33 +78,49 @@ function SuppliesContent() {
     fetchCategories();
   }, []);
 
-  // Fetch products when filters change
+  // Fetch products when filters change with AbortController and memory cache
   React.useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const controller = new AbortController();
 
-        const params = new URLSearchParams();
-        if (activeCategory) params.set('category', activeCategory);
-        if (activeSpecies) params.set('species', activeSpecies);
-        if (activeSort) params.set('sort', activeSort);
-        if (inStockOnly) params.set('inStock', 'true');
-        if (searchQuery) params.set('q', searchQuery);
+    const params = new URLSearchParams();
+    if (activeCategory) params.set('category', activeCategory);
+    if (activeSpecies) params.set('species', activeSpecies);
+    if (activeSort) params.set('sort', activeSort);
+    if (inStockOnly) params.set('inStock', 'true');
+    if (searchQuery) params.set('q', searchQuery);
 
-        const res = await apiFetch<{ products: ProductListItemSummary[] }>(
-          `/products?${params.toString()}`
-        );
-        setProducts(res.products);
-      } catch (err: any) {
-        console.error('Failed to load products:', err);
-        setError(err.message || 'Could not load products');
-      } finally {
-        setIsLoading(false);
-      }
+    const cacheKey = `products:${params.toString()}`;
+
+    // Instant render from cache (0ms)
+    const cached = getCachedCatalogue<{ products: ProductListItemSummary[] }>(cacheKey);
+    if (cached) {
+      setProducts(cached.products);
+      setInitialLoading(false);
+      setIsFiltering(false);
+    } else {
+      setIsFiltering(true);
     }
 
-    fetchProducts();
+    apiFetch<{ products: ProductListItemSummary[] }>(`/products?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        setCachedCatalogue(cacheKey, res);
+        setProducts(res.products);
+      })
+      .catch((err: any) => {
+        if (err.name === 'AbortError') return;
+        console.error('Failed to load products:', err);
+        setError(err.message || 'Could not load products');
+      })
+      .finally(() => {
+        setInitialLoading(false);
+        setIsFiltering(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [activeCategory, activeSpecies, activeSort, inStockOnly, searchQuery]);
 
   const updateFilters = (newParams: Record<string, string | null>) => {
@@ -176,12 +217,16 @@ function SuppliesContent() {
             <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
               <input
                 type="text"
+                suppressHydrationWarning
                 placeholder="Search food, chews, beds, toys..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-full border border-[var(--color-ivory-300)] bg-[var(--color-ivory-100)] text-[var(--color-charcoal-900)] placeholder-[var(--color-charcoal-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-sage-500)] focus:bg-[var(--color-ivory-50)]"
+                className="w-full pl-9 pr-8 py-2 text-xs rounded-full border border-[var(--color-ivory-300)] bg-[var(--color-ivory-100)] text-[var(--color-charcoal-900)] placeholder-[var(--color-charcoal-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-sage-500)] focus:bg-[var(--color-ivory-50)]"
               />
               <Search className="w-4 h-4 text-[var(--color-charcoal-400)] absolute left-3 top-1/2 -translate-y-1/2" />
+              {(isFiltering || searchInput !== searchQuery) && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-sage-600 absolute right-3 top-1/2 -translate-y-1/2" />
+              )}
             </form>
 
             {/* Controls */}
@@ -284,7 +329,7 @@ function SuppliesContent() {
           )}
 
           {/* Product Grid */}
-          {isLoading ? (
+          {initialLoading && products.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
@@ -315,7 +360,11 @@ function SuppliesContent() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 transition-opacity duration-200 ${
+                isFiltering ? 'opacity-70 pointer-events-none' : 'opacity-100'
+              }`}
+            >
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

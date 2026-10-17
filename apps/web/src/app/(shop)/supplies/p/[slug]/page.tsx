@@ -90,6 +90,20 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!selectedVariant || selectedVariant.availableStock <= 0) return;
+    if (!user) {
+      try {
+        sessionStorage.setItem(
+          'pawnest_pending_action',
+          JSON.stringify({
+            type: 'add_to_cart',
+            variantId: selectedVariant.id,
+            quantity,
+          })
+        );
+      } catch {}
+      router.push(`/auth/sign-in?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
     try {
       setIsAdding(true);
       await addItem(selectedVariant.id, quantity);
@@ -212,6 +226,7 @@ export default function ProductDetailPage() {
                 productName={product.name}
                 imageKeys={product.imageKeys}
                 model3dKey={product.model3dKey}
+                categorySlug={product.categorySlug}
               />
             </div>
 

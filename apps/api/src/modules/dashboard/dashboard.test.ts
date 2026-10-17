@@ -9,6 +9,8 @@ import {
   PaymentMode,
   Role,
   FavouriteKind,
+  ProviderType,
+  Species,
 } from '@pawnest/shared';
 import { createNotificationSafely } from '../notifications/routes.js';
 
@@ -113,14 +115,47 @@ describe('PawNest Phase 8 — Dashboard Unification & Notifications End-to-End',
       },
     });
 
-    // 5. Fetch Seeded Provider & Service
-    const provider = await prisma.provider.findFirst({
-      where: { services: { some: { isAddOn: false } } },
+    // 5. Create Dedicated Test Provider & Service (Isolated from seed data & other tests)
+    testProviderSlug = `dash-provider-${Date.now()}`;
+    const provider = await prisma.provider.create({
+      data: {
+        slug: testProviderSlug,
+        name: 'Dashboard Test Atelier',
+        type: ProviderType.GROOMER,
+        description: 'Dedicated test atelier for dashboard and reviews verification',
+        addressLine: '123 Atelier Way',
+        city: 'Brooklyn',
+        country: 'US',
+        lat: 40.71,
+        lng: -73.96,
+        timezone: 'UTC',
+        speciesAccepted: [Species.DOG],
+        hours: {
+          create: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+            weekday,
+            opensAt: '08:00',
+            closesAt: '20:00',
+            stations: 10,
+          })),
+        },
+        services: {
+          create: [
+            {
+              name: 'Full Grooming & Styling',
+              kind: BookingKind.GROOMING,
+              durationMin: 60,
+              bufferMin: 0,
+              basePriceCents: 8500,
+              species: [Species.DOG],
+              isAddOn: false,
+            },
+          ],
+        },
+      },
       include: { services: true },
     });
-    testProviderId = provider!.id;
-    testProviderSlug = provider!.slug;
-    testServiceId = provider!.services[0].id;
+    testProviderId = provider.id;
+    testServiceId = provider.services[0].id;
 
     // 6. Fetch Seeded Product & Variant
     const product = await prisma.product.findFirst({
@@ -150,6 +185,7 @@ describe('PawNest Phase 8 — Dashboard Unification & Notifications End-to-End',
         endsAt: futureEndDate.toISOString(),
       },
     });
+    expect(bookingRes.statusCode, `POST /bookings failed: ${JSON.stringify(bookingRes.json())}`).toBe(201);
     testBookingId = bookingRes.json().id;
 
     // 8. Create a Demo Order for User A
@@ -188,7 +224,38 @@ describe('PawNest Phase 8 — Dashboard Unification & Notifications End-to-End',
   });
 
   afterAll(async () => {
-    await app.close();
+    try {
+      if (testProviderId) {
+        await prisma.review.deleteMany({ where: { providerId: testProviderId } });
+      }
+      const userIds = [userAId, userBId, adminId].filter(Boolean) as string[];
+      if (userIds.length > 0) {
+        await prisma.review.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.favourite.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.orderItem.deleteMany({ where: { order: { userId: { in: userIds } } } });
+        await prisma.order.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.booking.deleteMany({ where: { userId: { in: userIds } } });
+      }
+      if (testProviderId) {
+        await prisma.booking.deleteMany({ where: { providerId: testProviderId } });
+        await prisma.service.deleteMany({ where: { providerId: testProviderId } });
+        await prisma.providerHours.deleteMany({ where: { providerId: testProviderId } });
+        await prisma.provider.deleteMany({ where: { id: testProviderId } });
+      }
+      if (userIds.length > 0) {
+        const petIds = [testPetId].filter(Boolean) as string[];
+        if (petIds.length > 0) {
+          await prisma.vaccination.deleteMany({ where: { petId: { in: petIds } } });
+          await prisma.pet.deleteMany({ where: { id: { in: petIds } } });
+        }
+        await prisma.idempotencyRecord.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+        await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      }
+    } finally {
+      await app.close();
+    }
   });
 
   // 1. Dashboard Overview & Summary Counts

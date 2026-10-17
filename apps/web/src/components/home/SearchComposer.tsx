@@ -73,6 +73,7 @@ export function SearchComposer() {
             </span>
             <input
               type="text"
+              suppressHydrationWarning
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Neighbourhood or city"
@@ -90,6 +91,7 @@ export function SearchComposer() {
             </span>
             <input
               type={activeTab === 'supplies' ? 'text' : 'date'}
+              suppressHydrationWarning
               value={date}
               onChange={(e) => setDate(e.target.value)}
               placeholder={activeTab === 'supplies' ? 'e.g. Adult Dog' : 'Choose date'}

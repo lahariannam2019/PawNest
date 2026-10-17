@@ -55,12 +55,19 @@ function getStatusBadge(status: OrderStatus, paymentMode: PaymentMode) {
   }
 }
 
+import { useAuth } from '../../../lib/auth/AuthContext';
+
 export default function OrdersDashboardPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = React.useState<OrderSummary[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (!user) {
+      if (!authLoading) setIsLoading(false);
+      return;
+    }
     async function loadOrders() {
       try {
         setIsLoading(true);
@@ -75,7 +82,7 @@ export default function OrdersDashboardPage() {
     }
 
     loadOrders();
-  }, []);
+  }, [user, authLoading]);
 
   return (
     <div className="space-y-6">

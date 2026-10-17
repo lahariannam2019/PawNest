@@ -9,11 +9,15 @@ import { VaccineReminderBanner } from '../../../components/pets/VaccineReminderB
 import { Button } from '../../../components/ui/Button';
 import { Plus, Loader2 } from 'lucide-react';
 
+import { useAuth } from '../../../lib/auth/AuthContext';
+
 export default function PetsListPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [pets, setPets] = React.useState<PetSummary[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchPets = React.useCallback(async () => {
+    if (!user) return;
     try {
       const res = await apiFetch<{ items: PetSummary[] }>('/pets');
       setPets(res.items);
@@ -22,11 +26,15 @@ export default function PetsListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   React.useEffect(() => {
-    fetchPets();
-  }, [fetchPets]);
+    if (user) {
+      fetchPets();
+    } else if (!authLoading) {
+      setIsLoading(false);
+    }
+  }, [user, authLoading, fetchPets]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -81,7 +89,7 @@ export default function PetsListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pets.map((pet) => (
+          {Array.from(new Map(pets.map((p) => [p.id, p])).values()).map((pet) => (
             <PetCard key={pet.id} pet={pet} />
           ))}
         </div>

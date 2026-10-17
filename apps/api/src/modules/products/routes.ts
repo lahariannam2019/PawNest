@@ -14,7 +14,8 @@ import {
 
 export const productRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /categories (Tree & Counts)
-  fastify.get('/categories', async () => {
+  fastify.get('/categories', async (_request, reply) => {
+    reply.header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     const categories = await prisma.category.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
@@ -53,7 +54,8 @@ export const productRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // GET /products (Catalogue search and filters)
-  fastify.get('/products', async (request) => {
+  fastify.get('/products', async (request, reply) => {
+    reply.header('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
     const query = ProductFilterSchema.parse(request.query);
     const {
       category,

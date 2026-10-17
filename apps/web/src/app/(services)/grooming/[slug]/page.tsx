@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { resolveImageSrc } from '@/lib/images';
 import { apiFetch } from '@/lib/api/client';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { ProviderSummary, ServiceSummary, ReviewSummary } from '@pawnest/shared';
 import {
   Star,
@@ -48,6 +49,7 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 export default function ProviderDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
+  const { user } = useAuth();
 
   const [data, setData] = useState<ProviderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -360,8 +362,12 @@ export default function ProviderDetailPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-charcoal-900">{r.userName}</span>
-                            {r.isSample && (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-peach-50 text-peach-700 border border-peach-200">
+                            {r.isSample ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                Sample Review
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sage-50 text-sage-800 border border-sage-200">
                                 Verified Customer
                               </span>
                             )}
@@ -412,7 +418,14 @@ export default function ProviderDetailPage() {
                   </span>
                 </div>
 
-                <Link href={`/book/grooming/${provider.slug}`} className="block">
+                <Link
+                  href={
+                    user
+                      ? `/book/grooming/${provider.slug}`
+                      : `/auth/sign-in?next=${encodeURIComponent(`/book/grooming/${provider.slug}`)}`
+                  }
+                  className="block"
+                >
                   <Button variant="primary" size="lg" className="w-full justify-center">
                     Select Treatment & Slot
                   </Button>

@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { FavouriteButton } from '@/components/ui/FavouriteButton';
 import { resolveImageSrc } from '@/lib/images';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 interface ProviderCardProps {
   provider: ProviderSummary;
 }
 
 export function ProviderCard({ provider }: ProviderCardProps) {
+  const { user } = useAuth();
   const fallback =
     provider.type === 'BOARDING'
       ? '/images/svc-board-01.jpg'
@@ -137,7 +139,13 @@ export function ProviderCard({ provider }: ProviderCardProps) {
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          <Link href={`/book/${basePath}/${provider.slug}`}>
+          <Link
+            href={
+              user
+                ? `/book/${basePath}/${provider.slug}`
+                : `/auth/sign-in?next=${encodeURIComponent(`/book/${basePath}/${provider.slug}`)}`
+            }
+          >
             <Button size="sm" variant="primary" className="text-xs px-3.5 py-1.5">
               Book
             </Button>

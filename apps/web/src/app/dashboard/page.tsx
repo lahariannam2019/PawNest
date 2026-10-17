@@ -42,6 +42,7 @@ export default function DashboardOverviewPage() {
   const [error, setError] = React.useState<string | null>(null);
 
   const fetchDashboardData = React.useCallback(async () => {
+    if (!user) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -58,11 +59,13 @@ export default function DashboardOverviewPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   React.useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user, fetchDashboardData]);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'there';
 
@@ -468,7 +471,7 @@ export default function DashboardOverviewPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {summary.pets.map((pet) => (
+            {Array.from(new Map(summary.pets.map((p) => [p.id, p])).values()).map((pet) => (
               <PetCard key={pet.id} pet={pet} />
             ))}
           </div>

@@ -31,6 +31,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /providers (Discovery & search)
   fastify.get('/providers', async (request, reply) => {
+    reply.header('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
     const query = ProviderFilterSchema.parse(request.query);
     const { type, q, species, minRating, city, cursor, limit = 20 } = query;
 

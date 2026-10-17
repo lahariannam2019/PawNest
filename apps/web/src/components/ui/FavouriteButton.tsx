@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { apiFetch } from '../../lib/api/client';
 import { FavouriteKind } from '@pawnest/shared';
@@ -39,33 +39,40 @@ export function FavouriteButton({
     e.stopPropagation();
 
     if (!user) {
+      try {
+        sessionStorage.setItem(
+          'pawnest_pending_action',
+          JSON.stringify({
+            type: 'favourite',
+            kind,
+            id,
+          })
+        );
+      } catch {}
       router.push(`/auth/sign-in?next=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 
     if (isPending) return;
 
-    // Optimistic toggle
-    const nextState = !isFavourited;
-    setIsFavourited(nextState);
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 300);
-
-    if (onToggle) {
-      onToggle(nextState);
-    }
+    // Immediate visual feedback without faking success
+    setIsPending(true);
 
     try {
-      setIsPending(true);
       const res = await apiFetch<{ isFavourited: boolean }>('/me/favourites', {
         method: 'POST',
         body: JSON.stringify({ kind, id }),
       });
+      // Update state only after server confirmation
       setIsFavourited(res.isFavourited);
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), 300);
+
+      if (onToggle) {
+        onToggle(res.isFavourited);
+      }
     } catch (err) {
-      // Revert on error
-      setIsFavourited(!nextState);
-      if (onToggle) onToggle(!nextState);
+      console.error('Failed to update favourite:', err);
     } finally {
       setIsPending(false);
     }
@@ -87,8 +94,10 @@ export function FavouriteButton({
     <button
       type="button"
       onClick={handleToggle}
+      disabled={isPending}
+      aria-busy={isPending}
       aria-label={isFavourited ? 'Remove from favourites' : 'Save to favourites'}
-      className={`relative inline-flex items-center justify-center rounded-full transition-transform active:scale-90 ${
+      className={`relative inline-flex items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-80 disabled:cursor-not-allowed ${
         sizeClasses[size]
       } ${
         isFavourited
@@ -96,11 +105,15 @@ export function FavouriteButton({
           : 'bg-white/80 backdrop-blur-sm text-[var(--color-charcoal-500)] hover:text-rose-500 border border-[var(--color-ivory-300)] shadow-sm'
       } ${className}`}
     >
-      <Heart
-        className={`${iconSizes[size]} transition-all duration-200 ${
-          isFavourited ? 'fill-rose-500 text-rose-500' : 'fill-transparent'
-        } ${isAnimating ? 'scale-125' : 'scale-100'}`}
-      />
+      {isPending ? (
+        <Loader2 className={`${iconSizes[size]} animate-spin text-rose-500`} />
+      ) : (
+        <Heart
+          className={`${iconSizes[size]} transition-all duration-200 ${
+            isFavourited ? 'fill-rose-500 text-rose-500' : 'fill-transparent'
+          } ${isAnimating ? 'scale-125' : 'scale-100'}`}
+        />
+      )}
     </button>
   );
 }
