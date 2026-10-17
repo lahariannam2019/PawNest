@@ -3,12 +3,20 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const isRailway = Boolean(
+    process.env.RAILWAY_ENVIRONMENT_NAME ||
+    process.env.RAILWAY_PROJECT_ID ||
+    process.env.RAILWAY_STATIC_URL ||
+    process.env.RAILWAY_PRIVATE_DOMAIN ||
+    process.env.RAILWAY_DEPLOYMENT_ID ||
+    process.env.RAILWAY_ENVIRONMENT
+  );
+
   const rawApiUrl =
-    process.env.API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.RAILWAY_SERVICE_API_URL ||
-    (process.env.RAILWAY_ENVIRONMENT ? 'http://api.railway.internal:8080' : '');
-  const apiUrl = (rawApiUrl || 'http://localhost:4000').replace(/\/$/, '');
+    (process.env.API_URL && process.env.API_URL.trim()) ||
+    (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) ||
+    (isRailway ? 'http://api.railway.internal:8080' : 'http://localhost:4000');
+  const apiUrl = rawApiUrl.replace(/\/$/, '');
 
   // Collect safe environment variable presence (names only, NEVER values)
   const envKeys = Object.keys(process.env).filter(
@@ -18,20 +26,25 @@ export async function GET() {
       ['NODE_ENV', 'PORT', 'API_URL'].includes(key)
   );
 
-  const testTargets = [
-    apiUrl,
-    'http://api.railway.internal:4000',
-    'http://api.railway.internal:8080',
-    'http://api.railway.internal:3000',
-  ].filter((url, idx, arr) => url && arr.indexOf(url) === idx);
+  const directInternal = 'http://api.railway.internal:8080';
 
-  const targetResults: Record<string, any> = {};
+  // Probe both resolved apiUrl and direct internal host
+  const probes: Record<string, any> = {};
 
-  for (const target of testTargets) {
+  const testEndpoints = [
+    { name: 'health', path: '/health' },
+    { name: 'ready', path: '/ready' },
+    { name: 'api_ready', path: '/api/v1/ready' },
+    { name: 'categories', path: '/api/v1/categories' },
+    { name: 'products', path: '/api/v1/products' },
+  ];
+
+  for (const endpoint of testEndpoints) {
+    const targetUrl = `${directInternal}${endpoint.path}`;
     try {
-      const res = await fetch(`${target}/health`, {
+      const res = await fetch(targetUrl, {
         cache: 'no-store',
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(4000),
       });
       let body: any = null;
       try {
@@ -39,55 +52,33 @@ export async function GET() {
       } catch {
         body = await res.text();
       }
-      targetResults[target] = {
+      probes[endpoint.name] = {
+        url: targetUrl,
         status: res.status,
         ok: res.ok,
-        body,
+        sample:
+          endpoint.name === 'products'
+            ? { total: body?.total, count: body?.products?.length, firstItem: body?.products?.[0]?.title }
+            : endpoint.name === 'categories'
+            ? { count: body?.categories?.length, list: body?.categories?.map((c: any) => c.name) }
+            : body,
       };
     } catch (err: any) {
-      targetResults[target] = {
+      probes[endpoint.name] = {
+        url: targetUrl,
         error: err.message,
         code: err.code || err.cause?.code,
       };
     }
   }
 
-  // Also test /ready and /api/v1/products against the active apiUrl
-  let readyCheck = null;
-  let productsCheck = null;
-
-  try {
-    const res = await fetch(`${apiUrl}/ready`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(3000),
-    });
-    readyCheck = { status: res.status, body: await res.json().catch(() => null) };
-  } catch (err: any) {
-    readyCheck = { error: err.message, code: err.code || err.cause?.code };
-  }
-
-  try {
-    const res = await fetch(`${apiUrl}/api/v1/products`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(3000),
-    });
-    const body = await res.json().catch(() => null);
-    productsCheck = {
-      status: res.status,
-      productCount: body?.products?.length ?? null,
-      total: body?.total ?? null,
-    };
-  } catch (err: any) {
-    productsCheck = { error: err.message, code: err.code || err.cause?.code };
-  }
-
   return NextResponse.json({
     timestamp: new Date().toISOString(),
-    configuredApiUrl: rawApiUrl ? rawApiUrl.replace(/:[^:@]+@/, ':***@') : '(not set, using default)',
+    isRailway,
+    railwayEnvName: process.env.RAILWAY_ENVIRONMENT_NAME || null,
+    configuredApiUrl: rawApiUrl,
     resolvedApiUrl: apiUrl,
     envKeys,
-    targetResults,
-    readyCheck,
-    productsCheck,
+    probes,
   });
 }
