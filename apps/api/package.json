@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "prebuild": "pnpm --filter @pawnest/shared build && prisma generate",
     "build": "tsc -b",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",

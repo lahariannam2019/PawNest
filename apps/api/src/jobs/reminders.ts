@@ -1,5 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import { prisma } from '../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { mailProvider } from '../integrations/mail/mail.js';
 
 let bossInstance: PgBoss | null = null;
@@ -90,7 +91,7 @@ export async function scheduleAppointmentReminder(booking: {
  * Guarantees that reminders are delivered EXACTLY ONCE.
  */
 export async function processAppointmentReminder(bookingId: string): Promise<boolean> {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const booking = await tx.booking.findUnique({
       where: { id: bookingId },
       include: {

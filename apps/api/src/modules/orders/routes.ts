@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from '../../lib/errors.js';
 import {
   CheckoutSessionSchema,
@@ -31,7 +32,7 @@ export async function expireOldReservations() {
 
   for (const order of expiredOrders) {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Release reserved quantities
         for (const item of order.items) {
           await tx.productVariant.update({
@@ -126,7 +127,7 @@ export const orderRoutes: FastifyPluginAsync = async (fastify) => {
       return { received: true, alreadyProcessed: true };
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Transition reserved stock to sold stock
       for (const item of existingOrder.items) {
         await tx.productVariant.update({
@@ -244,7 +245,7 @@ export const orderRoutes: FastifyPluginAsync = async (fastify) => {
       const sortedVariantIds = [...new Set(cart.items.map((i) => i.variantId))].sort();
 
       const createdOrder = await prisma.$transaction(
-        async (tx) => {
+        async (tx: Prisma.TransactionClient) => {
           // Acquire transactional advisory lock for each variant
           for (const variantId of sortedVariantIds) {
             await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`variant_stock:${variantId}`}))`;
@@ -369,7 +370,7 @@ export const orderRoutes: FastifyPluginAsync = async (fastify) => {
 
       // CRITICAL RULE: Demo orders must NEVER display a real "paid" status!
       // Status is DEMO_PLACED with paymentMode: DEMO
-      const updatedOrder = await prisma.$transaction(async (tx) => {
+      const updatedOrder = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const o = await tx.order.update({
           where: { id: order.id },
           data: {
@@ -458,7 +459,7 @@ export const orderRoutes: FastifyPluginAsync = async (fastify) => {
         );
       }
 
-      const cancelledOrder = await prisma.$transaction(async (tx) => {
+      const cancelledOrder = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // If stock was only reserved (PENDING_PAYMENT, DEMO_PLACED), release reserved
         if (order.status === OrderStatus.PENDING_PAYMENT || order.status === OrderStatus.DEMO_PLACED) {
           for (const item of order.items) {
@@ -530,8 +531,8 @@ export const orderRoutes: FastifyPluginAsync = async (fastify) => {
         throw new NotFoundError(`Order ${id} not found`);
       }
 
-      const updated = await prisma.$transaction(async (tx) => {
-        const updateData: any = { status };
+      const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const updateData: Prisma.OrderUpdateInput = { status };
 
         if (status === OrderStatus.SHIPPED && !order.shippedAt) {
           updateData.shippedAt = new Date();

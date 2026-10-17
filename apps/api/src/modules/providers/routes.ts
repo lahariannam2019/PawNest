@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../lib/errors.js';
 import { availabilityService } from '../availability/availability.service.js';
 import { BoardingAvailabilityService } from '../availability/boarding-availability.service.js';
@@ -12,10 +13,23 @@ import {
   ReviewSummary,
   ProviderType,
   Species,
+  BookingKind,
   STANDARD_VET_VISIT_TYPES,
   VET_SYMPTOM_OPTIONS,
   EMERGENCY_DISCLAIMER_TEXT,
 } from '@pawnest/shared';
+
+type ProviderWithPrices = Prisma.ProviderGetPayload<{
+  include: {
+    services: {
+      where: { isActive: true; isAddOn: false };
+      select: { basePriceCents: true };
+    };
+    units: {
+      select: { nightlyCents: true };
+    };
+  };
+}>;
 
 const boardingAvailabilityService = new BoardingAvailabilityService();
 
@@ -88,16 +102,16 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       nextCursor = nextItem?.id;
     }
 
-    const items: ProviderSummary[] = providers.map((p) => {
-      const servicePrices = p.services.map((s) => s.basePriceCents);
-      const unitPrices = p.units?.map((u) => u.nightlyCents) || [];
+    const items: ProviderSummary[] = providers.map((p: ProviderWithPrices) => {
+      const servicePrices = p.services.map((s: { basePriceCents: number }) => s.basePriceCents);
+      const unitPrices = p.units?.map((u: { nightlyCents: number }) => u.nightlyCents) || [];
       const allPrices = [...servicePrices, ...unitPrices];
       const minPriceCents = allPrices.length ? Math.min(...allPrices) : undefined;
 
       return {
         id: p.id,
         slug: p.slug,
-        type: p.type as any,
+        type: p.type as ProviderType,
         name: p.name,
         tagline: p.tagline,
         description: p.description,
@@ -108,7 +122,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         lat: p.lat,
         lng: p.lng,
         timezone: p.timezone,
-        speciesAccepted: p.speciesAccepted as any[],
+        speciesAccepted: p.speciesAccepted as Species[],
         amenities: p.amenities,
         imageKeys: p.imageKeys,
         ratingAvg: Number(p.ratingAvg),
@@ -152,8 +166,10 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       throw new NotFoundError('Provider not found');
     }
 
-    const servicePrices = provider.services.filter((s) => !s.isAddOn).map((s) => s.basePriceCents);
-    const unitPrices = provider.units.map((u) => u.nightlyCents);
+    const servicePrices = provider.services
+      .filter((s: { isAddOn: boolean }) => !s.isAddOn)
+      .map((s: { basePriceCents: number }) => s.basePriceCents);
+    const unitPrices = provider.units.map((u: { nightlyCents: number }) => u.nightlyCents);
     const allPrices = [...servicePrices, ...unitPrices];
     const minPriceCents = allPrices.length ? Math.min(...allPrices) : undefined;
 
@@ -174,7 +190,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         timezone: provider.timezone,
         phone: provider.phone,
         websiteUrl: provider.websiteUrl,
-        speciesAccepted: provider.speciesAccepted,
+        speciesAccepted: provider.speciesAccepted as Species[],
         amenities: provider.amenities,
         imageKeys: provider.imageKeys,
         ratingAvg: Number(provider.ratingAvg),
@@ -185,7 +201,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         priceFromCents: minPriceCents,
       },
       hours: provider.hours,
-      units: provider.units.map((u) => ({
+      units: provider.units.map((u: Prisma.BoardingUnitGetPayload<{}>) => ({
         id: u.id,
         providerId: u.providerId,
         name: u.name,
@@ -196,10 +212,10 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         currency: u.currency,
         amenities: u.amenities,
       })),
-      services: provider.services.map((s) => ({
+      services: provider.services.map((s: Prisma.ServiceGetPayload<{}>) => ({
         id: s.id,
         providerId: s.providerId,
-        kind: s.kind,
+        kind: s.kind as BookingKind,
         name: s.name,
         description: s.description,
         durationMin: s.durationMin,
@@ -207,11 +223,11 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
         basePriceCents: s.basePriceCents,
         currency: s.currency,
         sizePricing: s.sizePricing as Record<string, number> | null,
-        species: s.species,
+        species: s.species as Species[],
         isAddOn: s.isAddOn,
         isActive: s.isActive,
       })),
-      reviews: provider.reviews.map((r) => ({
+      reviews: provider.reviews.map((r: Prisma.ReviewGetPayload<{ include: { user: { select: { name: true } } } }>) => ({
         id: r.id,
         providerId: r.providerId,
         userName: r.user.name,
@@ -241,10 +257,10 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       orderBy: [{ isAddOn: 'asc' }, { basePriceCents: 'asc' }],
     });
 
-    return services.map((s) => ({
+    return services.map((s: Prisma.ServiceGetPayload<{}>) => ({
       id: s.id,
       providerId: s.providerId,
-      kind: s.kind,
+      kind: s.kind as BookingKind,
       name: s.name,
       description: s.description,
       durationMin: s.durationMin,
@@ -252,7 +268,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       basePriceCents: s.basePriceCents,
       currency: s.currency,
       sizePricing: s.sizePricing as Record<string, number> | null,
-      species: s.species,
+      species: s.species as Species[],
       isAddOn: s.isAddOn,
       isActive: s.isActive,
     }));
@@ -325,7 +341,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
       include: { user: { select: { name: true } } },
     });
 
-    return reviews.map((r) => ({
+    return reviews.map((r: Prisma.ReviewGetPayload<{ include: { user: { select: { name: true } } } }>) => ({
       id: r.id,
       providerId: r.providerId,
       userName: r.user.name,

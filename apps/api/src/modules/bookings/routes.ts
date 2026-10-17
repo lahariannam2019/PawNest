@@ -1,6 +1,16 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { scopedRepo } from '../../lib/scopedRepo.js';
+
+type BookingListItem = Prisma.BookingGetPayload<{
+  include: {
+    pet: true;
+    provider: true;
+    service: true;
+    unit: true;
+  };
+}>;
 import {
   NotFoundError,
   ValidationError,
@@ -241,7 +251,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
         throw new ValidationError('Boarding unit ID is required for boarding booking');
       }
 
-      const createdBooking = await prisma.$transaction(async (tx) => {
+      const createdBooking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Advisory transaction lock on the boarding unit
         const lockKey = `boarding_unit:${boardingUnitId}`;
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
@@ -444,7 +454,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     // -----------------------------------------------------------------
     // GROOMING / VET BOOKING TRANSACTION
     // -----------------------------------------------------------------
-    const createdBooking = await prisma.$transaction(async (tx) => {
+    const createdBooking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const lockKey = `${providerId}:${startsAtDate.toISOString()}`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
@@ -670,7 +680,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
       },
     });
 
-    const items: BookingSummary[] = bookings.map((b) => ({
+    const items: BookingSummary[] = bookings.map((b: BookingListItem) => ({
       id: b.id,
       reference: b.reference,
       userId: b.userId,
@@ -866,7 +876,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
 
       const nights = getStayNightDates(checkInStr, checkOutStr);
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const lockKey = `boarding_unit:${unit.id}`;
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 
@@ -931,7 +941,7 @@ export const bookingRoutes: FastifyPluginAsync = async (fastify) => {
     // -----------------------------------------------------------------
     // GROOMING / VET RESCHEDULE
     // -----------------------------------------------------------------
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const lockKey = `${existing.providerId}:${startsAtDate.toISOString()}`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
 

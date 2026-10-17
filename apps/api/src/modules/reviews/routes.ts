@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import {
   NotFoundError,
   ValidationError,
@@ -15,6 +16,15 @@ import {
   EligibleBookingForReview,
   ProviderReviewSummary,
 } from '@pawnest/shared';
+
+type CompletedBookingWithRelations = Prisma.BookingGetPayload<{
+  include: {
+    provider: true;
+    service: true;
+    pet: true;
+    review: true;
+  };
+}>;
 
 export const reviewRoutes: FastifyPluginAsync = async (fastify) => {
   // Authenticated endpoints
@@ -39,7 +49,7 @@ export const reviewRoutes: FastifyPluginAsync = async (fastify) => {
         orderBy: { startsAt: 'desc' },
       });
 
-      const items: EligibleBookingForReview[] = completedBookings.map((b) => ({
+      const items: EligibleBookingForReview[] = completedBookings.map((b: CompletedBookingWithRelations) => ({
         id: b.id,
         reference: b.reference,
         providerId: b.providerId,
@@ -103,7 +113,7 @@ export const reviewRoutes: FastifyPluginAsync = async (fastify) => {
         );
       }
 
-      const createdReview = await prisma.$transaction(async (tx) => {
+      const createdReview = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const review = await tx.review.create({
           data: {
             userId,
@@ -183,7 +193,7 @@ export const reviewRoutes: FastifyPluginAsync = async (fastify) => {
         throw new NotFoundError(`Booking ${id} not found`);
       }
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const b = await tx.booking.update({
           where: { id },
           data: { status },
