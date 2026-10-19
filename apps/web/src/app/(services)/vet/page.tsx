@@ -115,7 +115,7 @@ export default function VetPage() {
                 <Stethoscope className="w-3.5 h-3.5" /> Clinical Excellence & Diagnostics
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-peach-100 text-peach-700 border border-peach-200">
-                <Sparkles className="w-3 h-3 text-peach-500" /> Certified Clinics
+                <Sparkles className="w-3 h-3 text-peach-500" /> Partner Clinics (Demo)
               </span>
             </div>
 

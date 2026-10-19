@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ProviderSummary } from '@pawnest/shared';
+import { ProviderSummary, Species } from '@pawnest/shared';
 import { Star, MapPin, Sparkles, Clock, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -13,9 +13,10 @@ import { useAuth } from '@/lib/auth/AuthContext';
 
 interface ProviderCardProps {
   provider: ProviderSummary;
+  selectedSpecies?: Species;
 }
 
-export function ProviderCard({ provider }: ProviderCardProps) {
+export function ProviderCard({ provider, selectedSpecies }: ProviderCardProps) {
   const { user } = useAuth();
   const fallback =
     provider.type === 'BOARDING'
@@ -24,7 +25,18 @@ export function ProviderCard({ provider }: ProviderCardProps) {
       ? '/images/svc-vet-01.jpg'
       : '/images/svc-groom-01.jpg';
 
-  const imageSrc = resolveImageSrc(provider.imageKeys?.[0], fallback);
+  const isCatFilter = selectedSpecies === 'CAT' && provider.speciesAccepted.includes('CAT' as any);
+
+  let providerImage = provider.imageKeys?.[0];
+  if (isCatFilter && provider.type === 'BOARDING') {
+    if (provider.slug === 'prospect-park-paws-respite') {
+      providerImage = '/images/providers/prospect-park-feline.jpg';
+    } else if (provider.slug === 'whispering-pines-boarding') {
+      providerImage = '/images/providers/whispering-pines-feline.jpg';
+    }
+  }
+
+  const imageSrc = resolveImageSrc(providerImage, fallback);
 
   const priceFromFormatted = provider.priceFromCents
     ? `$${(provider.priceFromCents / 100).toFixed(0)}`
@@ -105,9 +117,22 @@ export function ProviderCard({ provider }: ProviderCardProps) {
           </p>
         )}
 
-        <p className="mt-2 text-xs text-charcoal-600 line-clamp-2 leading-relaxed">
-          {provider.description}
-        </p>
+        {isCatFilter && provider.type === 'BOARDING' ? (
+          <div className="mt-2 space-y-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+              🐾 Dedicated Feline Sanctuary Wing
+            </span>
+            <p className="text-xs text-charcoal-600 line-clamp-2 leading-relaxed">
+              {provider.slug === 'prospect-park-paws-respite'
+                ? 'Clementine Feline Sanctuary: Tranquil kitty suites with climbing bridges, interactive puzzle feeders, and floor-to-ceiling sun perches in a quiet feline retreat.'
+                : 'Serenity Feline Chalet: Multi-level vertical climbing towers, bird-watching window perches, and soothing feline pheromones in a 100% dog-free wing.'}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-charcoal-600 line-clamp-2 leading-relaxed">
+            {provider.description}
+          </p>
+        )}
 
         {/* Species & Amenities */}
         <div className="mt-3 flex flex-wrap gap-1.5">

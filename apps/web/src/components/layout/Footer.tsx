@@ -85,7 +85,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/boarding" className="hover:text-[var(--color-sage-700)] transition-colors">
-                  Boarding & Daycare
+                  Overnight Boarding &amp; Suites
                 </Link>
               </li>
               <li>
@@ -119,7 +119,12 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/dashboard/bookings" className="hover:text-[var(--color-sage-700)] transition-colors">
-                  Bookings & Calendar
+                  Bookings &amp; Stays
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard/appointments" className="hover:text-[var(--color-sage-700)] transition-colors">
+                  Veterinary Visits
                 </Link>
               </li>
               <li>

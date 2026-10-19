@@ -47,21 +47,26 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
       </div>
 
       {/* Right Column: Arched Dog Photo (hidden on small viewports) */}
-      <div className="hidden lg:flex lg:col-span-5 relative bg-[var(--color-ivory-200)]/60 items-center justify-center p-12 overflow-hidden border-l border-[var(--color-ivory-300)]">
-        <div className="relative w-full max-w-md aspect-[4/5] rounded-[var(--radius-arch)] overflow-hidden shadow-[var(--shadow-3)]">
+      <div className="hidden lg:flex lg:col-span-5 relative bg-[var(--color-ivory-200)]/60 items-center justify-center p-8 xl:p-12 overflow-hidden border-l border-[var(--color-ivory-300)]">
+        <div className="relative w-full max-w-md aspect-[4/5] rounded-[var(--radius-arch)] overflow-hidden shadow-[var(--shadow-3)] ring-1 ring-black/5">
           <Image
             src="/images/hero-02.jpg"
             alt="Attentive dog portrait"
             fill
-            sizes="500px"
-            className="object-cover"
+            sizes="(min-width: 1024px) 480px, 100vw"
+            className="object-cover object-[center_12%]"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-8">
-            <div className="bg-[#1F2421]/80 backdrop-blur-md rounded-2xl p-5 border border-white/15 shadow-lg w-full">
-              <p className="text-white font-serif text-base sm:text-lg leading-relaxed drop-shadow-sm">
+          {/* Bottom gradient providing depth for the testimonial card */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
+            <div className="bg-[var(--color-ivory-50)]/95 backdrop-blur-md rounded-2xl p-5 border border-[var(--color-ivory-300)] shadow-xl w-full">
+              <p className="text-[var(--color-charcoal-900)] font-serif text-base leading-snug">
                 “One pet profile that makes every grooming and veterinary appointment faster and safer.”
               </p>
+              <div className="mt-2.5 flex items-center justify-between text-xs text-[var(--color-charcoal-600)]">
+                <span className="font-medium text-[var(--color-charcoal-800)]">Maya L. &amp; Barnaby</span>
+                <span className="text-[var(--color-sage-700)] font-medium">Brooklyn, NY</span>
+              </div>
             </div>
           </div>
         </div>

@@ -96,7 +96,7 @@ export default function GroomingPage() {
             </h1>
 
             <p className="text-base text-charcoal-600 leading-relaxed font-sans">
-              Discover calm, cage-free styling ateliers and certified master groomers tailored to your
+              Discover calm, cage-free styling ateliers and experienced master stylists tailored to your
               companion’s coat type, temperament, and size tier.
             </p>
           </div>

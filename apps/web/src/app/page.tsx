@@ -4,7 +4,6 @@ import { Hero } from '../components/home/Hero';
 import { ValuesStrip } from '../components/home/ValuesStrip';
 import { ServicesBento } from '../components/home/ServicesBento';
 import { HowItWorks } from '../components/home/HowItWorks';
-import { FeaturedProviders } from '../components/home/FeaturedProviders';
 import { SuppliesPreview } from '../components/home/SuppliesPreview';
 import { PetProfileFeature } from '../components/home/PetProfileFeature';
 import { SampleStories } from '../components/home/SampleStories';
@@ -29,10 +28,7 @@ export default function HomePage() {
         {/* 5. How It Works */}
         <HowItWorks />
 
-        {/* 6. Featured Providers Rail */}
-        <FeaturedProviders />
-
-        {/* 7. Supplies Preview */}
+        {/* 6. Supplies Preview */}
         <SuppliesPreview />
 
         {/* 8. Pet Profile Feature */}

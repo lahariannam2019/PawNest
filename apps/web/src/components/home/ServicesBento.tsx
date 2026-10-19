@@ -12,7 +12,6 @@ export function ServicesBento() {
       subtitle: 'Gentle baths, breed-specific styling & stress-free coats',
       href: '/grooming',
       image: '/images/svc-groom-01.jpg',
-      span: 'lg:col-span-7 lg:row-span-2',
       tag: 'From $45',
     },
     {
@@ -20,7 +19,6 @@ export function ServicesBento() {
       subtitle: 'Home-like suites with personal routines & play lawns',
       href: '/boarding',
       image: '/images/svc-board-01.jpg',
-      span: 'lg:col-span-5',
       tag: 'From $65/night',
     },
     {
@@ -28,16 +26,7 @@ export function ServicesBento() {
       subtitle: 'Routine wellness, dental care & preventative exams',
       href: '/vet',
       image: '/images/svc-vet-01.jpg',
-      span: 'lg:col-span-5',
       tag: 'From $70',
-    },
-    {
-      title: 'Curated Essentials',
-      subtitle: 'Organic nutrition, ergonomic walks & orthopedic beds',
-      href: '/supplies',
-      image: '/images/svc-shop-01.jpg',
-      span: 'lg:col-span-12',
-      tag: 'Over 60 Items',
     },
   ];
 
@@ -50,7 +39,7 @@ export function ServicesBento() {
               Integrated Pet Care
             </div>
             <h2 className="text-3xl md:text-5xl font-serif text-[var(--color-charcoal-900)] tracking-tight">
-              Four pillars of whole-dog wellness.
+              Three pillars of whole-pet wellness.
             </h2>
           </div>
           <p className="text-sm md:text-base text-[var(--color-charcoal-600)] max-w-md">
@@ -58,9 +47,9 @@ export function ServicesBento() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {services.map((svc, i) => (
-            <div key={svc.title} className={`${svc.span} group`}>
+            <div key={svc.title} className="group">
               <Reveal delay={i * 0.1}>
                 <Link
                   href={svc.href}

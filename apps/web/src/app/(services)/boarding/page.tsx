@@ -221,7 +221,7 @@ export default function BoardingPage() {
                         </span>
                       )}
                     </span>
-                    <span>All partners verified & insured</span>
+                    <span>Sample boarding retreats • Demo dataset</span>
                   </div>
 
                   <div
@@ -230,7 +230,7 @@ export default function BoardingPage() {
                     }`}
                   >
                     {providers.map((provider) => (
-                      <ProviderCard key={provider.id} provider={provider} />
+                      <ProviderCard key={provider.id} provider={provider} selectedSpecies={species} />
                     ))}
                   </div>
                 </div>
